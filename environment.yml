@@ -1,4 +1,4 @@
-name: kaggle
+name: kaggle_classification
 channels:
   - pytorch
   - nvidia
