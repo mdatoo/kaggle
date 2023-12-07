@@ -1,0 +1,6 @@
+version: '3'
+
+tasks:
+  build:
+    cmds:
+      - mamba env create -f environment.yml
