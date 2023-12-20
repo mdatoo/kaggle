@@ -1,6 +1,13 @@
 version: '3'
 
+env:
+  ENVIRONMENT_NAME: kaggle_classification
+
 tasks:
   build:
     cmds:
-      - mamba env create -f environment.yml
+      - |
+        if mamba info --envs | grep -q $ENVIRONMENT_NAME;
+          then echo "$ENVIRONMENT_NAME already exists";
+          else mamba env create -f environment.yml -n $ENVIRONMENT_NAME;
+        fi

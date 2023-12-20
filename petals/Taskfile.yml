@@ -1,0 +1,17 @@
+version: '3'
+
+env:
+  ENVIRONMENT_NAME: kaggle_classification
+
+includes:
+  base:
+    taskfile: ../Taskfile.yml
+    dir: ../
+    internal: true
+
+tasks:
+  build:
+    cmds:
+      - task: base:build
+      - mamba run --live-stream -n $ENVIRONMENT_NAME kaggle competitions download -c tpu-getting-started
+      - mamba run --live-stream -n $ENVIRONMENT_NAME python convert.py

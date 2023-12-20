@@ -6,4 +6,4 @@
 
 1. Install [miniforge](https://github.com/conda-forge/miniforge)
 
-1. `task build`
+1. Generate [Kaggle API credentials](https://github.com/Kaggle/kaggle-api#api-credentials)
