@@ -9,5 +9,5 @@ tasks:
       - |
         if mamba info --envs | grep -q $ENVIRONMENT_NAME;
           then echo "$ENVIRONMENT_NAME already exists";
-          else mamba env create -f environment.yml -n $ENVIRONMENT_NAME;
+          else conda install -y mamba; mamba env create -f environment.yml -n $ENVIRONMENT_NAME;
         fi
