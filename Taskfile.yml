@@ -3,8 +3,24 @@ version: '3'
 env:
   DEFAULT_ENVIRONMENT_NAME: kaggle_classification
 
+includes:
+  petals:
+    taskfile: ./kaggle_classification/tasks/petals/Taskfile.yml
+    dir: ./kaggle_classification/tasks/petals/
+
 tasks:
+  default:
+    cmds:
+      - task --list
+
+  init:
+    desc: Build environment & download all data
+    cmds:
+      - task: build
+      - task: download
+
   build:
+    desc: Build environment
     cmds:
       - |
         if [[ ! -z "${CONDA_DEFAULT_ENV}" ]]; then
@@ -16,7 +32,11 @@ tasks:
             conda install -y mamba; mamba env create -f environment.yml -n $DEFAULT_ENVIRONMENT_NAME; pre-commit install;
           fi
         fi
-    internal: true
+  
+  download:
+    desc: Download all data
+    cmds:
+      - task: petals:download
 
   lint:
     desc: Run linting
