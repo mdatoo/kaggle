@@ -32,7 +32,7 @@ extension-pkg-allow-list=
 # run arbitrary code. (This is an alternative name to extension-pkg-allow-list
 # for backward compatibility.)
 extension-pkg-whitelist=
-      
+
 # Return non-zero exit code if any of these messages/categories are detected,
 # even if score is above --fail-under value. Syntax same as enable. Messages
 # specified are enabled, while categories only check already-enabled messages.
@@ -428,16 +428,16 @@ disable=raw-checker-failed,
         suppressed-message,
         useless-suppression,
         deprecated-pragma,
+        use-implicit-booleaness-not-comparison-to-string,
+        use-implicit-booleaness-not-comparison-to-zero,
         use-symbolic-message-instead,
-        missing-function-docstring,
-        missing-class-docstring,
-        missing-module-docstring
+        line-too-long
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once). See also the "--disable" option for examples.
-enable=c-extension-no-member
+enable=
 
 
 [METHOD_ARGS]
@@ -483,8 +483,9 @@ evaluation=max(0, 0 if fatal else 10.0 - ((float(5 * error + warning + refactor 
 # used to format the message information. See doc for all details.
 msg-template=
 
-# Set the output format. Available formats are text, parseable, colorized, json
-# and msvs (visual studio). You can also give a reporter class, e.g.
+# Set the output format. Available formats are: text, parseable, colorized,
+# json2 (improved json format), json (old json format) and msvs (visual
+# studio). You can also give a reporter class, e.g.
 # mypackage.mymodule.MyReporterClass.
 #output-format=
 
@@ -519,7 +520,7 @@ min-similarity-lines=4
 max-spelling-suggestions=4
 
 # Spelling dictionary name. No available dictionaries : You need to install
-# both the python package and the system dependency for enchant to work..
+# both the python package and the system dependency for enchant to work.
 spelling-dict=
 
 # List of comma separated words that should be considered directives if they
@@ -558,7 +559,7 @@ contextmanager-decorators=contextlib.contextmanager
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E1101 when accessed. Python regular
 # expressions are accepted.
-generated-members=cv2
+generated-members=
 
 # Tells whether to warn about missing members when the owner of the attribute
 # is inferred to be None.

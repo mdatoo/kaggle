@@ -1,0 +1,44 @@
+repos:
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v2.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+  - repo: https://github.com/psf/black
+    rev: 22.6.0
+    hooks:
+      - id: black
+        args:
+        - --line-length
+        - "120"
+  - repo: https://github.com/pycqa/isort
+    rev: 5.11.5
+    hooks:
+      - id: isort
+        name: isort (python)
+        args: 
+        - --profile
+        - black
+  - repo: local
+    hooks:
+    - id: pylint
+      name: pylint
+      entry: pylint
+      require_serial: true
+      language: system
+      types: [python]
+      args:
+      - --reports=n
+      - --score=n
+    - id: mypy
+      name: mypy
+      entry: mypy
+      require_serial: true
+      language: system
+      types: [python]
+      args:
+      - --follow-imports=silent
+      - --ignore-missing-imports
+      - --show-column-numbers
+      - --no-pretty
+      - --strict

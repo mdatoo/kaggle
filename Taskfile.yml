@@ -1,13 +1,29 @@
 version: '3'
 
 env:
-  ENVIRONMENT_NAME: kaggle_classification
+  DEFAULT_ENVIRONMENT_NAME: kaggle_classification
 
 tasks:
   build:
     cmds:
       - |
-        if mamba info --envs | grep -q $ENVIRONMENT_NAME;
-          then echo "$ENVIRONMENT_NAME already exists";
-          else conda install -y mamba; mamba env create -f environment.yml -n $ENVIRONMENT_NAME;
+        if [[ ! -z "${CONDA_DEFAULT_ENV}" ]]; then
+          echo "$CONDA_DEFAULT_ENV already exists";
+        else
+          if mamba info --envs | grep -q $DEFAULT_ENVIRONMENT_NAME; then
+            echo "$DEFAULT_ENVIRONMENT_NAME already exists";
+          else
+            conda install -y mamba; mamba env create -f environment.yml -n $DEFAULT_ENVIRONMENT_NAME; pre-commit install;
+          fi
+        fi
+    internal: true
+
+  lint:
+    desc: Run linting
+    cmds:
+      - |
+        if [[ -z "${CONDA_DEFAULT_ENV}" ]]; then
+          mamba run --live-stream -n ${DEFAULT_ENVIRONMENT_NAME} pre-commit run --all-files;
+        else
+          mamba run --live-stream pre-commit run --all-files;
         fi

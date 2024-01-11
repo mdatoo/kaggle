@@ -10,9 +10,7 @@ from dataset.image_dataset import ImageDataset
 
 
 class ClassificationDataset(ImageDataset):
-    def __init__(
-        self, image_folder: str, labels: Dict[str, Any], transform: BaseCompose = None
-    ) -> None:
+    def __init__(self, image_folder: str, labels: Dict[str, Any], transform: BaseCompose = None) -> None:
         super().__init__(image_folder, transform)
         self.labels = labels
 

@@ -6,7 +6,11 @@ import numpy as np
 import pandas as pd
 import torch
 from albumentations.pytorch import ToTensorV2
-from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
+from lightning.pytorch.callbacks import (
+    EarlyStopping,
+    LearningRateMonitor,
+    ModelCheckpoint,
+)
 from lightning.pytorch.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader
 

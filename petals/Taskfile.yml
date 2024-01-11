@@ -1,7 +1,7 @@
 version: '3'
 
 env:
-  ENVIRONMENT_NAME: kaggle_classification
+  DEFAULT_ENVIRONMENT_NAME: kaggle_classification
 
 includes:
   base:
@@ -11,7 +11,14 @@ includes:
 
 tasks:
   build:
+    desc: Setup environment
     cmds:
       - task: base:build
-      - mamba run --live-stream -n $ENVIRONMENT_NAME kaggle competitions download -c tpu-getting-started
-      - mamba run --live-stream -n $ENVIRONMENT_NAME python convert.py
+      - |
+        if [[ -z "${CONDA_DEFAULT_ENV}" ]]; then
+          mamba run --live-stream -n ${DEFAULT_ENVIRONMENT_NAME} kaggle competitions download -c tpu-getting-started;
+          mamba run --live-stream -n ${DEFAULT_ENVIRONMENT_NAME} python convert.py;
+        else
+          mamba run --live-stream kaggle competitions download -c tpu-getting-started;
+          mamba run --live-stream python convert.py;
+        fi

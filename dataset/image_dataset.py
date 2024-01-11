@@ -36,9 +36,7 @@ class ImageDataset(Dataset):
     def std(self) -> np.ndarray:
         with ThreadPoolExecutor() as executor:
             variances = []
-            for variance in executor.map(
-                partial(self._calc_variance, mean=self.mean), self.image_paths
-            ):
+            for variance in executor.map(partial(self._calc_variance, mean=self.mean), self.image_paths):
                 variances.append(variance)
             return np.sqrt(np.mean(np.concatenate(variances, axis=0), axis=0))
 

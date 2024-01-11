@@ -28,18 +28,18 @@ class ReduceLROnPlateauWrapper(optim.lr_scheduler.ReduceLROnPlateau):
 
     def state_dict(self) -> Dict[str, Any]:
         state_dict = {key: value for key, value in self.__dict__.items() if key not in ("optimiser", "scheduler")}
-        state_dict['scheduler'] = self.scheduler.state_dict()
+        state_dict["scheduler"] = self.scheduler.state_dict()
 
         return state_dict
 
     def load_state_dict(self, state_dict) -> None:
         self.__dict__.update(state_dict)
 
-        scheduler = state_dict.pop('scheduler')
+        scheduler = state_dict.pop("scheduler")
         self.__dict__.update(state_dict)
         # Restore state_dict keys in order to prevent side effects
         # https://github.com/pytorch/pytorch/issues/32756
-        state_dict['scheduler'] = scheduler
+        state_dict["scheduler"] = scheduler
 
         self.scheduler.load_state_dict(scheduler)
 

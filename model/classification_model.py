@@ -30,9 +30,7 @@ class ClassificationModel(pl.LightningModule):
     def __init__(self, model_name: str, num_classes: int) -> None:
         super().__init__()
 
-        self.model = timm.create_model(
-            model_name, pretrained=True, in_chans=3, num_classes=num_classes
-        )
+        self.model = timm.create_model(model_name, pretrained=True, in_chans=3, num_classes=num_classes)
         self.criterion = nn.CrossEntropyLoss()
         self.optimiser = optim.AdamW(self.model.parameters(), lr=0.0001, weight_decay=0.01)
 
