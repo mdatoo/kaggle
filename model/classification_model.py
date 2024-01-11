@@ -54,15 +54,15 @@ class ClassificationModel(pl.LightningModule):
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
         images, labels = batch
 
-        if batch_idx == 0:
+        if batch_idx == 0 and self.logger:
             grid = make_grid(images, nrow=64)
-            self.logger.experiment.add_image("first_batch", grid, 0)
-            self.logger.experiment.add_graph(self.model, images)
+            self.logger.experiment.add_image("first_batch", grid, 0)  # type: ignore[attr-defined]
+            self.logger.experiment.add_graph(self.model, images)  # type: ignore[attr-defined]
 
         outputs = self.model(images)
         _, predictions = torch.max(outputs.data, 1)
 
-        loss = self.criterion(outputs, labels)
+        loss: torch.Tensor = self.criterion(outputs, labels)
         self.log("train_loss", loss, on_step=True, on_epoch=False)
 
         self.train_acc.update(predictions, labels)
@@ -84,23 +84,24 @@ class ClassificationModel(pl.LightningModule):
         return loss
 
     def on_train_epoch_end(self) -> None:
-        confusion_matrix = self.train_confusion.compute().detach().cpu().numpy().astype(int)
+        if self.logger:
+            confusion_matrix = self.train_confusion.compute().detach().cpu().numpy().astype(int)  # type: ignore[func-returns-value]
 
-        plt.figure(figsize=(10, 7))
-        figure = sn.heatmap(pd.DataFrame(confusion_matrix), cmap="mako").get_figure()
-        plt.close(figure)
-        self.logger.experiment.add_figure("train_confusion", figure, self.current_epoch)
+            plt.figure(figsize=(10, 7))
+            figure = sn.heatmap(pd.DataFrame(confusion_matrix), cmap="mako").get_figure()
+            plt.close(figure)
+            self.logger.experiment.add_figure("train_confusion", figure, self.current_epoch)  # type: ignore[attr-defined]
 
-        train_probs = torch.softmax(self.train_outputs.compute(), 1)
-        train_labels = self.train_labels.compute()
+            train_probs = torch.softmax(self.train_outputs.compute(), 1)
+            train_labels = self.train_labels.compute()
 
-        for image_class in range(train_probs.shape[1]):
-            self.logger.experiment.add_pr_curve(
-                f"train_{image_class}",
-                train_labels == image_class,
-                train_probs[:, image_class],
-                self.current_epoch,
-            )
+            for image_class in range(train_probs.shape[1]):
+                self.logger.experiment.add_pr_curve(  # type: ignore[attr-defined]
+                    f"train_{image_class}",
+                    train_labels == image_class,
+                    train_probs[:, image_class],
+                    self.current_epoch,
+                )
 
         self.train_confusion.reset()
         self.train_outputs.reset()
@@ -132,29 +133,30 @@ class ClassificationModel(pl.LightningModule):
         self.val_labels.update(labels)
 
     def on_validation_epoch_end(self) -> None:
-        confusion_matrix = self.val_confusion.compute().detach().cpu().numpy().astype(int)
+        if self.logger:
+            confusion_matrix = self.val_confusion.compute().detach().cpu().numpy().astype(int)  # type: ignore[func-returns-value]
 
-        plt.figure(figsize=(10, 7))
-        figure = sn.heatmap(pd.DataFrame(confusion_matrix), cmap="mako").get_figure()
-        plt.close(figure)
-        self.logger.experiment.add_figure("val_confusion", figure, self.current_epoch)
+            plt.figure(figsize=(10, 7))
+            figure = sn.heatmap(pd.DataFrame(confusion_matrix), cmap="mako").get_figure()
+            plt.close(figure)
+            self.logger.experiment.add_figure("val_confusion", figure, self.current_epoch)  # type: ignore[attr-defined]
 
-        val_probs = torch.softmax(self.val_outputs.compute(), 1)
-        val_labels = self.val_labels.compute()
+            val_probs = torch.softmax(self.val_outputs.compute(), 1)
+            val_labels = self.val_labels.compute()
 
-        for image_class in range(val_probs.shape[1]):
-            self.logger.experiment.add_pr_curve(
-                f"val_{image_class}",
-                val_labels == image_class,
-                val_probs[:, image_class],
-                self.current_epoch,
-            )
+            for image_class in range(val_probs.shape[1]):
+                self.logger.experiment.add_pr_curve(  # type: ignore[attr-defined]
+                    f"val_{image_class}",
+                    val_labels == image_class,
+                    val_probs[:, image_class],
+                    self.current_epoch,
+                )
 
         self.val_confusion.reset()
         self.val_outputs.reset()
         self.val_labels.reset()
 
-    def configure_optimizers(
+    def configure_optimizers(  # type: ignore[override]
         self,
     ) -> Dict[str, Any]:
         return {

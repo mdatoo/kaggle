@@ -1,8 +1,5 @@
 version: '3'
 
-env:
-  DEFAULT_ENVIRONMENT_NAME: kaggle_classification
-
 includes:
   base:
     taskfile: ../Taskfile.yml
