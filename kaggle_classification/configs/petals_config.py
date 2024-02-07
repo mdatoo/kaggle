@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
-from typing import List
-
 import albumentations as A
+import numpy as np
+import timm
 from albumentations.pytorch import ToTensorV2
-from lightning.pytorch import Callback
 from lightning.pytorch.callbacks import (
     EarlyStopping,
     LearningRateMonitor,
     ModelCheckpoint,
 )
+from torch import nn, optim
 
 from ..datasets import PetalsDataset
+from ..lr_schedulers import ReduceLROnPlateauWrapper
 from .classification_config import ClassificationConfig
 
 
@@ -23,6 +24,7 @@ class PetalsConfig(ClassificationConfig[str]):
     Config object for petals classification task.
     """
 
+    experiment_name = "resnet50"
     dataset = PetalsDataset("kaggle_classification/data/petals/train/", "kaggle_classification/data/petals/labels.csv")
     train_val_split = 0.2
     seed = 0
@@ -30,7 +32,26 @@ class PetalsConfig(ClassificationConfig[str]):
     train_num_workers = 8
     val_batch_size = 16
     val_num_workers = 8
-    model_name = "resnet50"
+    model = timm.create_model("resnet50", pretrained=True, in_chans=3, num_classes=dataset.num_classes)
+    loss = nn.CrossEntropyLoss()
+    optimiser = optim.AdamW(model.parameters(), lr=0.0001, weight_decay=0.01)
+    optimiser_scheduler = ReduceLROnPlateauWrapper(
+        optim.lr_scheduler.LambdaLR(
+            optimiser,
+            lambda epoch: min(1, 0.1 + 0.9 * (np.exp(epoch / 5) - 1) / (np.e - 1)),
+        ),
+        optimiser=optimiser,
+        patience=10,
+    )
+    callbacks = [
+        LearningRateMonitor(logging_interval="epoch"),
+        ModelCheckpoint(
+            dirpath="checkpoints/",
+            filename="{epoch}-{val_loss:.2f}-{val_accuracy:.2f}",
+            monitor="val_loss",
+        ),
+        EarlyStopping(monitor="val_loss", patience=20),
+    ]
 
     @property
     def train_augmentations(self) -> A.BaseCompose:
@@ -54,16 +75,3 @@ class PetalsConfig(ClassificationConfig[str]):
                 ToTensorV2(),
             ]
         )
-
-    @property
-    def callbacks(self) -> List[Callback]:
-        """PyTorch Lightning trainer callbacks."""
-        return [
-            LearningRateMonitor(logging_interval="epoch"),
-            ModelCheckpoint(
-                dirpath="checkpoints/",
-                filename="{epoch}-{val_loss:.2f}-{val_accuracy:.2f}",
-                monitor="val_loss",
-            ),
-            EarlyStopping(monitor="val_loss", patience=20),
-        ]

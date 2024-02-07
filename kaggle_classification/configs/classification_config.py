@@ -9,6 +9,7 @@ import numpy.typing as npt
 import torch
 from albumentations import BaseCompose
 from lightning.pytorch import Callback
+from torch import nn, optim
 from torch.utils.data import DataLoader
 
 from ..datasets import ClassificationDataset
@@ -74,6 +75,11 @@ class ClassificationConfig(Generic[T]):
 
     @property
     @abstractmethod
+    def experiment_name(self) -> str:
+        """Name of experiment."""
+
+    @property
+    @abstractmethod
     def dataset(self) -> ClassificationDataset[T]:
         """Train and val dataset."""
 
@@ -119,8 +125,23 @@ class ClassificationConfig(Generic[T]):
 
     @property
     @abstractmethod
-    def model_name(self) -> str:
-        """Name of backbone."""
+    def model(self) -> nn.Module:
+        """PyTorch model."""
+
+    @property
+    @abstractmethod
+    def loss(self) -> nn.Module:
+        """PyTorch loss."""
+
+    @property
+    @abstractmethod
+    def optimiser(self) -> optim.Optimizer:
+        """PyTorch optimiser."""
+
+    @property
+    @abstractmethod
+    def optimiser_scheduler(self) -> optim.lr_scheduler.LRScheduler:
+        """PyTorch LR scheduler."""
 
     @property
     @abstractmethod

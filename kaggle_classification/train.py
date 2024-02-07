@@ -27,12 +27,14 @@ def run() -> None:
 
     config: ClassificationConfig[Any] = args.config
 
-    classification_model = ClassificationModel(config.model_name, config.dataset.num_classes)
+    classification_model = ClassificationModel(
+        config.model, config.dataset.num_classes, config.loss, config.optimiser, config.optimiser_scheduler
+    )
     train_dataloader = config.train_dataloader
     val_dataloader = config.val_dataloader
 
     trainer = pl.Trainer(
-        logger=TensorBoardLogger("logs/", name=config.model_name),
+        logger=TensorBoardLogger("logs/", name=config.experiment_name),
         log_every_n_steps=1,
         num_sanity_val_steps=0,
         callbacks=config.callbacks,

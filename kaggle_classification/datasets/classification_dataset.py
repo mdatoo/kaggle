@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property, partial
 from glob import glob
 from typing import Dict, List, Optional, Tuple, TypeVar, Union
@@ -83,7 +83,7 @@ class ClassificationDataset(Dataset[Tuple[Union[npt.NDArray[np.uint8], torch.Ten
     @cached_property
     def mean(self) -> npt.NDArray[np.uint8]:
         """Calculate mean of all images in dataset."""
-        with ProcessPoolExecutor() as executor:
+        with ThreadPoolExecutor() as executor:
             means = []
             for mean in tqdm(
                 executor.map(self._calc_mean, self.image_paths),
@@ -101,7 +101,7 @@ class ClassificationDataset(Dataset[Tuple[Union[npt.NDArray[np.uint8], torch.Ten
     @cached_property
     def std(self) -> npt.NDArray[np.uint8]:
         """Calculate standard deviation of all images in dataset."""
-        with ProcessPoolExecutor() as executor:
+        with ThreadPoolExecutor() as executor:
             variances = []
             for variance in tqdm(
                 executor.map(partial(self._calc_variance, mean=self.mean), self.image_paths),
@@ -119,12 +119,20 @@ class ClassificationDataset(Dataset[Tuple[Union[npt.NDArray[np.uint8], torch.Ten
     @cached_property
     def image_names(self) -> List[str]:
         """All image names in dataset."""
-        return [image_path.rsplit("/", 1)[1].rsplit(".", 1)[0] for image_path in self.image_paths]
+        return [self._get_image_name(image_path) for image_path in self.image_paths]
 
     @cached_property
     def image_paths(self) -> List[str]:
         """All image paths in dataset."""
-        return glob(f"{self.image_folder}/**")
+        return [
+            image_path
+            for image_path in glob(f"{self.image_folder}/**")
+            if self._get_image_name(image_path) in self.labels
+        ]
+
+    def _get_image_name(self, image_path: str) -> str:
+        """Get image name from path."""
+        return image_path.rsplit("/", 1)[1].rsplit(".", 1)[0]
 
     @property
     def image_folder(self) -> str:
