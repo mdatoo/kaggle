@@ -1,4 +1,5 @@
-"""Convert tensorflow records to png and json"""
+"""Convert tensorflow records to png and json."""
+
 from glob import glob
 from os import makedirs, remove
 from shutil import rmtree, unpack_archive
@@ -20,6 +21,7 @@ TEST_RECORD_SCHEMA = {
 
 
 def setup() -> None:
+    """Create/Clean up directories."""
     rmtree("train", ignore_errors=True)
     rmtree("test", ignore_errors=True)
     makedirs("train")
@@ -27,10 +29,12 @@ def setup() -> None:
 
 
 def extract() -> None:
+    """Extract zip."""
     unpack_archive("tpu-getting-started.zip")
 
 
 def decode_train() -> None:
+    """Decode train records."""
     print("Decoding train records and saving images")
     train_labels = {}
 
@@ -54,6 +58,7 @@ def decode_train() -> None:
 
 
 def decode_test() -> None:
+    """Decode test records."""
     print("Decoding test records and saving images")
     for tf_record_dataset_path in tqdm(glob("tfrecords-jpeg-512x512/test/**")):
         tf_record_dataset = tf.data.TFRecordDataset(tf_record_dataset_path)
@@ -67,6 +72,7 @@ def decode_test() -> None:
 
 
 def teardown() -> None:
+    """Delete temporary files."""
     remove("tpu-getting-started.zip")
     remove("sample_submission.csv")
 
@@ -77,6 +83,7 @@ def teardown() -> None:
 
 
 def run() -> None:
+    """Convert tensorflow records to png and json."""
     setup()
 
     extract()

@@ -9,6 +9,7 @@ CONFIGS_MAPPING = {"petals_config": PetalsConfig()}
 
 
 def config_argparse(config_name: str) -> ClassificationConfig:
+    """Parse string to config object."""
     try:
         return CONFIGS_MAPPING[config_name]
     except KeyError as exc:

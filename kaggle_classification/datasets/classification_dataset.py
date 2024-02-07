@@ -23,7 +23,7 @@ class ClassificationDataset(Dataset[Tuple[Union[np.ndarray, torch.Tensor], T]]):
     """
 
     def __init__(self, image_folder: str, labels: Dict[str, T], transform: Optional[BaseCompose] = None) -> None:
-        """Initialises object.
+        """Initialise object.
 
         Args:
             image_folder: Path to folder of images
@@ -73,7 +73,7 @@ class ClassificationDataset(Dataset[Tuple[Union[np.ndarray, torch.Tensor], T]]):
 
     @cached_property
     def mean(self) -> np.ndarray:
-        """Calculates mean of all images in dataset."""
+        """Calculate mean of all images in dataset."""
         with ProcessPoolExecutor() as executor:
             means = []
             for mean in tqdm(
@@ -91,7 +91,7 @@ class ClassificationDataset(Dataset[Tuple[Union[np.ndarray, torch.Tensor], T]]):
 
     @cached_property
     def std(self) -> np.ndarray:
-        """Calculates standard deviation of all images in dataset."""
+        """Calculate standard deviation of all images in dataset."""
         with ProcessPoolExecutor() as executor:
             variances = []
             for variance in tqdm(

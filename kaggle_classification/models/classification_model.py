@@ -1,3 +1,5 @@
+"""Image classification PyTorch model."""
+
 from typing import Any, Dict
 
 import lightning.pytorch as pl
@@ -22,12 +24,19 @@ from torchvision.utils import make_grid
 from ..lr_schedulers import ReduceLROnPlateauWrapper
 
 
-def get_last_lr() -> float:
-    return 0.0001
-
-
 class ClassificationModel(pl.LightningModule):
+    """Image classification PyTorch model.
+
+    PyTorch model to perform image classification.
+    """
+
     def __init__(self, model_name: str, num_classes: int) -> None:
+        """Initialise object.
+
+        Args:
+            model_name: Name of backbone to use
+            num_classes: Number of classification classes
+        """
         super().__init__()
 
         self.model = timm.create_model(model_name, pretrained=True, in_chans=3, num_classes=num_classes)
@@ -51,7 +60,13 @@ class ClassificationModel(pl.LightningModule):
         self.val_outputs = CatMetric()
         self.val_labels = CatMetric()
 
-    def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
+    def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:  # pylint: disable=arguments-differ
+        """Calculate and log metrics/loss to tensorboard.
+
+        Args:
+            batch: Current dataloader batch (images/labels)
+            batch_idx: Index of current batch
+        """
         images, labels = batch
 
         if batch_idx == 0 and self.logger:
@@ -84,6 +99,7 @@ class ClassificationModel(pl.LightningModule):
         return loss
 
     def on_train_epoch_end(self) -> None:
+        """Log confusion matrix and PR curve."""
         if self.logger:
             confusion_matrix = self.train_confusion.compute().detach().cpu().numpy().astype(int)  # type: ignore[func-returns-value]
 
@@ -107,7 +123,13 @@ class ClassificationModel(pl.LightningModule):
         self.train_outputs.reset()
         self.train_labels.reset()
 
-    def validation_step(self, batch: torch.Tensor, _: int) -> None:
+    def validation_step(self, batch: torch.Tensor, _: int) -> None:  # pylint: disable=arguments-differ
+        """Calculate and log metrics/loss to tensorboard.
+
+        Args:
+            batch: Current dataloader batch (images/labels)
+            _: Unused (index of current batch)
+        """
         images, labels = batch
 
         outputs = self.model(images)
@@ -133,6 +155,7 @@ class ClassificationModel(pl.LightningModule):
         self.val_labels.update(labels)
 
     def on_validation_epoch_end(self) -> None:
+        """Log confusion matrix and PR curve."""
         if self.logger:
             confusion_matrix = self.val_confusion.compute().detach().cpu().numpy().astype(int)  # type: ignore[func-returns-value]
 
@@ -159,6 +182,7 @@ class ClassificationModel(pl.LightningModule):
     def configure_optimizers(  # type: ignore[override]
         self,
     ) -> Dict[str, Any]:
+        """Return optimiser with schedules."""
         return {
             "optimizer": self.optimiser,
             "lr_scheduler": {

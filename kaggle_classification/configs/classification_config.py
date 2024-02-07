@@ -1,4 +1,6 @@
-from abc import abstractproperty
+"""Image classification config."""
+
+from abc import abstractmethod
 from functools import cached_property
 from typing import List, Optional, Tuple
 
@@ -10,8 +12,14 @@ from ..datasets import ClassificationDataset
 
 
 class ClassificationConfig:
+    """Image classification config.
+
+    Config object for an image classification task.
+    """
+
     @property
     def train_dataloader(self) -> DataLoader:
+        """Dataloader for train dataset."""
         return DataLoader(
             dataset=self._train_dataset_with_augmentations,
             batch_size=self.train_batch_size,
@@ -22,6 +30,7 @@ class ClassificationConfig:
 
     @property
     def val_dataloader(self) -> DataLoader:
+        """Dataloader for val dataset."""
         return DataLoader(
             dataset=self._val_dataset_with_augmentations,
             batch_size=self.val_batch_size,
@@ -44,56 +53,69 @@ class ClassificationConfig:
 
     @property
     def train_dataset(self) -> Subset:
+        """Train dataset."""
         return self._train_val_datasets[0]
 
     @property
     def val_dataset(self) -> Subset:
+        """Val dataset."""
         return self._train_val_datasets[1]
 
     @cached_property
     def _train_val_datasets(self) -> Tuple[Subset, Subset]:
         return self.dataset.split_train_test(self.train_val_split, self.seed)
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def dataset(self) -> ClassificationDataset:
-        pass
+        """Train and val dataset."""
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def train_val_split(self) -> float:
-        pass
+        """Portion of data that should be in val (0.0-1.0)."""
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def seed(self) -> int:
-        pass
+        """Random seed for dataset splitting."""
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def train_augmentations(self) -> Optional[BaseCompose]:
-        pass
+        """Augmentations for train dataset."""
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def val_augmentations(self) -> Optional[BaseCompose]:
-        pass
+        """Augmentations for val dataset."""
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def train_batch_size(self) -> int:
-        pass
+        """Batch size used for training."""
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def train_num_workers(self) -> int:
-        pass
+        """No of workers used in train dataloader."""
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def val_batch_size(self) -> int:
-        pass
+        """Batch size used for validation."""
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def val_num_workers(self) -> int:
-        pass
+        """No of workers used in val dataloader."""
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def model_name(self) -> str:
-        pass
+        """Name of backbone."""
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def callbacks(self) -> List[Callback]:
-        pass
+        """PyTorch Lightning trainer callbacks."""

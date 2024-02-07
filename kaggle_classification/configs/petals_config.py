@@ -1,3 +1,5 @@
+"""Petals config."""
+
 from __future__ import annotations
 
 from typing import List, Optional
@@ -16,6 +18,11 @@ from .classification_config import ClassificationConfig
 
 
 class PetalsConfig(ClassificationConfig):
+    """Petals config.
+
+    Config object for petals classification task.
+    """
+
     dataset = PetalsDataset("kaggle_classification/data/petals/train/", "kaggle_classification/data/petals/labels.csv")
     train_val_split = 0.2
     seed = 0
@@ -27,6 +34,7 @@ class PetalsConfig(ClassificationConfig):
 
     @property
     def train_augmentations(self) -> Optional[A.BaseCompose]:
+        """Augmentations for train dataset."""
         return A.Compose(
             [
                 A.OneOf([A.HorizontalFlip(p=0.5), A.VerticalFlip(p=0.5)], p=0.2),
@@ -39,6 +47,7 @@ class PetalsConfig(ClassificationConfig):
 
     @property
     def val_augmentations(self) -> Optional[A.BaseCompose]:
+        """Augmentations for val dataset."""
         return A.Compose(
             [
                 A.Normalize(self.train_dataset.dataset.mean, self.train_dataset.dataset.std, 1),
@@ -48,6 +57,7 @@ class PetalsConfig(ClassificationConfig):
 
     @property
     def callbacks(self) -> List[Callback]:
+        """PyTorch Lightning trainer callbacks."""
         return [
             LearningRateMonitor(logging_interval="epoch"),
             ModelCheckpoint(

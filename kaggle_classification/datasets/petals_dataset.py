@@ -15,7 +15,7 @@ class PetalsDataset(ClassificationDataset[str]):
     """
 
     def __init__(self, image_folder: str, labels_file: str, transform: Optional[BaseCompose] = None) -> None:
-        """Initialises object.
+        """Initialise object.
 
         Args:
             image_folder: Path to folder of images

@@ -23,7 +23,7 @@ class ReduceLROnPlateauWrapper(optim.lr_scheduler.ReduceLROnPlateau):
         factor: float = 0.1,
         patience: int = 10,
     ) -> None:
-        """Initialises object.
+        """Initialise object.
 
         Args:
             scheduler: LR scheduler to wrap
