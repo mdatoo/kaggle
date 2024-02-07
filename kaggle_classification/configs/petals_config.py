@@ -12,7 +12,6 @@ from lightning.pytorch.callbacks import (
 )
 
 from ..datasets import PetalsDataset
-
 from .classification_config import ClassificationConfig
 
 
