@@ -10,6 +10,6 @@
 
 ## Training
 
-`task train -- (name of config e.g. petals)`
+`task train -- (name of config e.g. petals_config)`
 
-See the [tasks folder](kaggle_classification/tasks/) for list of tasks (or do `task train -- --help`)
+See the [tasks folder](kaggle_classification/tasks/) for list of tasks
