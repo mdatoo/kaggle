@@ -1,6 +1,6 @@
 """Image classification PyTorch dataset."""
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 from functools import cached_property, partial
 from glob import glob
 from typing import Dict, List, Optional, Tuple, TypeVar, Union
@@ -11,11 +11,12 @@ import torch
 from albumentations import BaseCompose
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset, Subset
+from tqdm import tqdm
 
 T = TypeVar("T")
 
 
-class ImageClassificationDataset(Dataset[Tuple[Union[np.ndarray, torch.Tensor], T]]):
+class ClassificationDataset(Dataset[Tuple[Union[np.ndarray, torch.Tensor], T]]):
     """Image classification PyTorch dataset.
 
     PyTorch dataset reading from a folder of images.
@@ -35,7 +36,7 @@ class ImageClassificationDataset(Dataset[Tuple[Union[np.ndarray, torch.Tensor], 
 
     def __getitem__(self, idx: int) -> Tuple[Union[np.ndarray, torch.Tensor], T]:
         """Return image and label given index.
-        
+
         Args:
             idx: Data index
         """
@@ -73,9 +74,13 @@ class ImageClassificationDataset(Dataset[Tuple[Union[np.ndarray, torch.Tensor], 
     @cached_property
     def mean(self) -> np.ndarray:
         """Calculates mean of all images in dataset."""
-        with ThreadPoolExecutor() as executor:
+        with ProcessPoolExecutor() as executor:
             means = []
-            for mean in executor.map(self._calc_mean, self.image_paths):
+            for mean in tqdm(
+                executor.map(self._calc_mean, self.image_paths),
+                desc="Calculating mean of images",
+                total=len(self.image_paths),
+            ):
                 means.append(mean)
             return np.mean(np.concatenate(means, axis=0), axis=0)
 
@@ -87,9 +92,13 @@ class ImageClassificationDataset(Dataset[Tuple[Union[np.ndarray, torch.Tensor], 
     @cached_property
     def std(self) -> np.ndarray:
         """Calculates standard deviation of all images in dataset."""
-        with ThreadPoolExecutor() as executor:
+        with ProcessPoolExecutor() as executor:
             variances = []
-            for variance in executor.map(partial(self._calc_variance, mean=self.mean), self.image_paths):
+            for variance in tqdm(
+                executor.map(partial(self._calc_variance, mean=self.mean), self.image_paths),
+                desc="Calculating std of images",
+                total=len(self.image_paths),
+            ):
                 variances.append(variance)
             return np.sqrt(np.mean(np.concatenate(variances, axis=0), axis=0))
 
@@ -112,3 +121,8 @@ class ImageClassificationDataset(Dataset[Tuple[Union[np.ndarray, torch.Tensor], 
     def image_folder(self) -> str:
         """Image folder."""
         return self._image_folder
+
+    @property
+    def num_classes(self) -> int:
+        """Number of classes."""
+        return len(set(self.labels.values()))

@@ -5,10 +5,10 @@ from typing import Optional
 import pandas as pd
 from albumentations import BaseCompose
 
-from .image_classification_dataset import ImageClassificationDataset
+from .classification_dataset import ClassificationDataset
 
 
-class PetalsDataset(ImageClassificationDataset[str]):
+class PetalsDataset(ClassificationDataset[str]):
     """Petals PyTorch dataset.
 
     PyTorch dataset reading from a folder of images and a csv labels file.

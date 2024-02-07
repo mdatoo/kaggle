@@ -19,7 +19,7 @@ from torchmetrics import (
 )
 from torchvision.utils import make_grid
 
-from lr_scheduler import ReduceLROnPlateauWrapper
+from ..lr_schedulers import ReduceLROnPlateauWrapper
 
 
 def get_last_lr() -> float:

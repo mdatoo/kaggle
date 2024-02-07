@@ -5,8 +5,8 @@ env:
 
 includes:
   petals:
-    taskfile: ./kaggle_classification/tasks/petals/Taskfile.yml
-    dir: ./kaggle_classification/tasks/petals/
+    taskfile: ./kaggle_classification/data/petals/Taskfile.yml
+    dir: ./kaggle_classification/data/petals/
 
 tasks:
   default:
@@ -37,6 +37,16 @@ tasks:
     desc: Download all data
     cmds:
       - task: petals:download
+  
+  train:
+    desc: Run classification training
+    cmds:
+      - |
+        if [[ -z "${CONDA_DEFAULT_ENV}" ]]; then
+          mamba run --live-stream -n ${DEFAULT_ENVIRONMENT_NAME} python -m kaggle_classification.train {{.CLI_ARGS}};
+        else
+          mamba run --live-stream python -m kaggle_classification.train {{.CLI_ARGS}};
+        fi
 
   lint:
     desc: Run linting
