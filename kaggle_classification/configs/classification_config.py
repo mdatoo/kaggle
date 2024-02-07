@@ -2,23 +2,28 @@
 
 from abc import abstractmethod
 from functools import cached_property
-from typing import List, Optional, Tuple
+from typing import Generic, List, Tuple, TypeVar, Union
 
+import numpy as np
+import numpy.typing as npt
+import torch
 from albumentations import BaseCompose
 from lightning.pytorch import Callback
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 
 from ..datasets import ClassificationDataset
 
+T = TypeVar("T")
 
-class ClassificationConfig:
+
+class ClassificationConfig(Generic[T]):
     """Image classification config.
 
     Config object for an image classification task.
     """
 
     @property
-    def train_dataloader(self) -> DataLoader:
+    def train_dataloader(self) -> DataLoader[Tuple[Union[npt.NDArray[np.uint8], torch.Tensor], T]]:
         """Dataloader for train dataset."""
         return DataLoader(
             dataset=self._train_dataset_with_augmentations,
@@ -29,7 +34,7 @@ class ClassificationConfig:
         )
 
     @property
-    def val_dataloader(self) -> DataLoader:
+    def val_dataloader(self) -> DataLoader[Tuple[Union[npt.NDArray[np.uint8], torch.Tensor], T]]:
         """Dataloader for val dataset."""
         return DataLoader(
             dataset=self._val_dataset_with_augmentations,
@@ -40,82 +45,84 @@ class ClassificationConfig:
         )
 
     @property
-    def _train_dataset_with_augmentations(self) -> Subset:
+    def _train_dataset_with_augmentations(self) -> ClassificationDataset[T]:
         dataset = self.train_dataset
-        dataset.dataset.transform = self.train_augmentations
+        dataset.transform = self.train_augmentations
         return dataset
 
     @property
-    def _val_dataset_with_augmentations(self) -> Subset:
+    def _val_dataset_with_augmentations(self) -> ClassificationDataset[T]:
         dataset = self.val_dataset
-        dataset.dataset.transform = self.val_augmentations
+        dataset.transform = self.val_augmentations
         return dataset
 
     @property
-    def train_dataset(self) -> Subset:
+    def train_dataset(self) -> ClassificationDataset[T]:
         """Train dataset."""
         return self._train_val_datasets[0]
 
     @property
-    def val_dataset(self) -> Subset:
+    def val_dataset(self) -> ClassificationDataset[T]:
         """Val dataset."""
         return self._train_val_datasets[1]
 
     @cached_property
-    def _train_val_datasets(self) -> Tuple[Subset, Subset]:
+    def _train_val_datasets(
+        self,
+    ) -> Tuple[ClassificationDataset[T], ClassificationDataset[T]]:
         return self.dataset.split_train_test(self.train_val_split, self.seed)
 
-    @abstractmethod
     @property
-    def dataset(self) -> ClassificationDataset:
+    @abstractmethod
+    def dataset(self) -> ClassificationDataset[T]:
         """Train and val dataset."""
 
-    @abstractmethod
     @property
+    @abstractmethod
     def train_val_split(self) -> float:
         """Portion of data that should be in val (0.0-1.0)."""
 
-    @abstractmethod
     @property
+    @abstractmethod
     def seed(self) -> int:
         """Random seed for dataset splitting."""
 
-    @abstractmethod
     @property
-    def train_augmentations(self) -> Optional[BaseCompose]:
+    @abstractmethod
+    def train_augmentations(self) -> BaseCompose:
         """Augmentations for train dataset."""
 
-    @abstractmethod
     @property
-    def val_augmentations(self) -> Optional[BaseCompose]:
+    @abstractmethod
+    def val_augmentations(self) -> BaseCompose:
         """Augmentations for val dataset."""
 
-    @abstractmethod
     @property
+    @abstractmethod
     def train_batch_size(self) -> int:
         """Batch size used for training."""
 
-    @abstractmethod
     @property
+    @abstractmethod
     def train_num_workers(self) -> int:
         """No of workers used in train dataloader."""
 
-    @abstractmethod
     @property
+    @abstractmethod
     def val_batch_size(self) -> int:
         """Batch size used for validation."""
 
-    @abstractmethod
     @property
+    @abstractmethod
     def val_num_workers(self) -> int:
         """No of workers used in val dataloader."""
 
-    @abstractmethod
     @property
+    @abstractmethod
     def model_name(self) -> str:
         """Name of backbone."""
 
-    @abstractmethod
     @property
+    @abstractmethod
     def callbacks(self) -> List[Callback]:
         """PyTorch Lightning trainer callbacks."""

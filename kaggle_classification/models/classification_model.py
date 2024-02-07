@@ -16,7 +16,6 @@ from torchmetrics import (
     ConfusionMatrix,
     F1Score,
     Precision,
-    PrecisionRecallCurve,
     Recall,
 )
 from torchvision.utils import make_grid
@@ -43,22 +42,26 @@ class ClassificationModel(pl.LightningModule):
         self.criterion = nn.CrossEntropyLoss()
         self.optimiser = optim.AdamW(self.model.parameters(), lr=0.0001, weight_decay=0.01)
 
-        self.train_acc = Accuracy(task="multiclass", num_classes=num_classes)
-        self.train_pre = Precision(task="multiclass", num_classes=num_classes)
-        self.train_rec = Recall(task="multiclass", num_classes=num_classes)
-        self.train_f1 = F1Score(task="multiclass", num_classes=num_classes)
-        self.train_confusion = ConfusionMatrix(task="multiclass", num_classes=num_classes)
-        self.train_outputs = CatMetric()
-        self.train_labels = CatMetric()
-
-        self.val_acc = Accuracy(task="multiclass", num_classes=num_classes)
-        self.val_pre = Precision(task="multiclass", num_classes=num_classes)
-        self.val_rec = Recall(task="multiclass", num_classes=num_classes)
-        self.val_f1 = F1Score(task="multiclass", num_classes=num_classes)
-        self.val_confusion = ConfusionMatrix(task="multiclass", num_classes=num_classes)
-        self.val_pr_curve = PrecisionRecallCurve(task="multiclass", num_classes=num_classes)
-        self.val_outputs = CatMetric()
-        self.val_labels = CatMetric()
+        self.metrics = {
+            "train": {
+                "acc": Accuracy(task="multiclass", num_classes=num_classes),
+                "pre": Precision(task="multiclass", num_classes=num_classes),
+                "rec": Recall(task="multiclass", num_classes=num_classes),
+                "f1": F1Score(task="multiclass", num_classes=num_classes),
+                "confusion": ConfusionMatrix(task="multiclass", num_classes=num_classes),
+                "outputs": CatMetric(),
+                "labels": CatMetric(),
+            },
+            "val": {
+                "acc": Accuracy(task="multiclass", num_classes=num_classes),
+                "pre": Precision(task="multiclass", num_classes=num_classes),
+                "rec": Recall(task="multiclass", num_classes=num_classes),
+                "f1": F1Score(task="multiclass", num_classes=num_classes),
+                "confusion": ConfusionMatrix(task="multiclass", num_classes=num_classes),
+                "outputs": CatMetric(),
+                "labels": CatMetric(),
+            },
+        }
 
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:  # pylint: disable=arguments-differ
         """Calculate and log metrics/loss to tensorboard.
@@ -80,36 +83,36 @@ class ClassificationModel(pl.LightningModule):
         loss: torch.Tensor = self.criterion(outputs, labels)
         self.log("train_loss", loss, on_step=True, on_epoch=False)
 
-        self.train_acc.update(predictions, labels)
-        self.log("train_accuracy", self.train_acc, on_step=False, on_epoch=True)
+        self.metrics["train"]["acc"].update(predictions, labels)
+        self.log("train_accuracy", self.metrics["train"]["acc"], on_step=False, on_epoch=True)
 
-        self.train_pre.update(predictions, labels)
-        self.log("train_precision", self.train_pre, on_step=False, on_epoch=True)
+        self.metrics["train"]["pre"].update(predictions, labels)
+        self.log("train_precision", self.metrics["train"]["pre"], on_step=False, on_epoch=True)
 
-        self.train_rec.update(predictions, labels)
-        self.log("train_recall", self.train_rec, on_step=False, on_epoch=True)
+        self.metrics["train"]["rec"].update(predictions, labels)
+        self.log("train_recall", self.metrics["train"]["rec"], on_step=False, on_epoch=True)
 
-        self.train_f1.update(predictions, labels)
-        self.log("train_f1", self.train_f1, on_step=False, on_epoch=True)
+        self.metrics["train"]["f1"].update(predictions, labels)
+        self.log("train_f1", self.metrics["train"]["f1"], on_step=False, on_epoch=True)
 
-        self.train_confusion.update(predictions, labels)
-        self.train_outputs.update(outputs)
-        self.train_labels.update(labels)
+        self.metrics["train"]["confusion"].update(predictions, labels)
+        self.metrics["train"]["outputs"].update(outputs)
+        self.metrics["train"]["labels"].update(labels)
 
         return loss
 
     def on_train_epoch_end(self) -> None:
         """Log confusion matrix and PR curve."""
         if self.logger:
-            confusion_matrix = self.train_confusion.compute().detach().cpu().numpy().astype(int)  # type: ignore[func-returns-value]
+            confusion_matrix = self.metrics["train"]["confusion"].compute().detach().cpu().numpy().astype(int)
 
             plt.figure(figsize=(10, 7))
             figure = sn.heatmap(pd.DataFrame(confusion_matrix), cmap="mako").get_figure()
             plt.close(figure)
             self.logger.experiment.add_figure("train_confusion", figure, self.current_epoch)  # type: ignore[attr-defined]
 
-            train_probs = torch.softmax(self.train_outputs.compute(), 1)
-            train_labels = self.train_labels.compute()
+            train_probs = torch.softmax(self.metrics["train"]["outputs"].compute(), 1)
+            train_labels = self.metrics["train"]["labels"].compute()
 
             for image_class in range(train_probs.shape[1]):
                 self.logger.experiment.add_pr_curve(  # type: ignore[attr-defined]
@@ -119,9 +122,9 @@ class ClassificationModel(pl.LightningModule):
                     self.current_epoch,
                 )
 
-        self.train_confusion.reset()
-        self.train_outputs.reset()
-        self.train_labels.reset()
+        self.metrics["train"]["confusion"].reset()
+        self.metrics["train"]["outputs"].reset()
+        self.metrics["train"]["labels"].reset()
 
     def validation_step(self, batch: torch.Tensor, _: int) -> None:  # pylint: disable=arguments-differ
         """Calculate and log metrics/loss to tensorboard.
@@ -138,34 +141,34 @@ class ClassificationModel(pl.LightningModule):
         loss = self.criterion(outputs, labels)
         self.log("val_loss", loss, on_step=False, on_epoch=True)
 
-        self.val_acc.update(predictions, labels)
-        self.log("val_accuracy", self.val_acc, on_step=False, on_epoch=True)
+        self.metrics["val"]["acc"].update(predictions, labels)
+        self.log("val_accuracy", self.metrics["val"]["acc"], on_step=False, on_epoch=True)
 
-        self.val_pre.update(predictions, labels)
-        self.log("val_precision", self.val_pre, on_step=False, on_epoch=True)
+        self.metrics["val"]["pre"].update(predictions, labels)
+        self.log("val_precision", self.metrics["val"]["pre"], on_step=False, on_epoch=True)
 
-        self.val_rec.update(predictions, labels)
-        self.log("val_recall", self.val_rec, on_step=False, on_epoch=True)
+        self.metrics["val"]["rec"].update(predictions, labels)
+        self.log("val_recall", self.metrics["val"]["rec"], on_step=False, on_epoch=True)
 
-        self.val_f1.update(predictions, labels)
-        self.log("val_f1", self.val_f1, on_step=False, on_epoch=True)
+        self.metrics["val"]["f1"].update(predictions, labels)
+        self.log("val_f1", self.metrics["val"]["f1"], on_step=False, on_epoch=True)
 
-        self.val_confusion.update(predictions, labels)
-        self.val_outputs.update(outputs)
-        self.val_labels.update(labels)
+        self.metrics["val"]["confusion"].update(predictions, labels)
+        self.metrics["val"]["outputs"].update(outputs)
+        self.metrics["val"]["labels"].update(labels)
 
     def on_validation_epoch_end(self) -> None:
         """Log confusion matrix and PR curve."""
         if self.logger:
-            confusion_matrix = self.val_confusion.compute().detach().cpu().numpy().astype(int)  # type: ignore[func-returns-value]
+            confusion_matrix = self.metrics["val"]["confusion"].compute().detach().cpu().numpy().astype(int)
 
             plt.figure(figsize=(10, 7))
             figure = sn.heatmap(pd.DataFrame(confusion_matrix), cmap="mako").get_figure()
             plt.close(figure)
             self.logger.experiment.add_figure("val_confusion", figure, self.current_epoch)  # type: ignore[attr-defined]
 
-            val_probs = torch.softmax(self.val_outputs.compute(), 1)
-            val_labels = self.val_labels.compute()
+            val_probs = torch.softmax(self.metrics["val"]["outputs"].compute(), 1)
+            val_labels = self.metrics["val"]["labels"].compute()
 
             for image_class in range(val_probs.shape[1]):
                 self.logger.experiment.add_pr_curve(  # type: ignore[attr-defined]
@@ -175,9 +178,9 @@ class ClassificationModel(pl.LightningModule):
                     self.current_epoch,
                 )
 
-        self.val_confusion.reset()
-        self.val_outputs.reset()
-        self.val_labels.reset()
+        self.metrics["val"]["confusion"].reset()
+        self.metrics["val"]["outputs"].reset()
+        self.metrics["val"]["labels"].reset()
 
     def configure_optimizers(  # type: ignore[override]
         self,

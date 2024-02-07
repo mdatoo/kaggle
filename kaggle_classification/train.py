@@ -2,6 +2,7 @@
 
 import random
 from argparse import ArgumentParser
+from typing import Any
 
 import lightning.pytorch as pl
 import numpy as np
@@ -24,7 +25,7 @@ def run() -> None:
     parser.add_argument("config", type=config_argparse)
     args = parser.parse_args()
 
-    config: ClassificationConfig = args.config
+    config: ClassificationConfig[Any] = args.config
 
     classification_model = ClassificationModel(config.model_name, config.dataset.num_classes)
     train_dataloader = config.train_dataloader

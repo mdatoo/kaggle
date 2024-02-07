@@ -1,6 +1,7 @@
 """Config files."""
 
 from argparse import ArgumentTypeError
+from typing import Any
 
 from .classification_config import ClassificationConfig
 from .petals_config import PetalsConfig
@@ -8,7 +9,7 @@ from .petals_config import PetalsConfig
 CONFIGS_MAPPING = {"petals_config": PetalsConfig()}
 
 
-def config_argparse(config_name: str) -> ClassificationConfig:
+def config_argparse(config_name: str) -> ClassificationConfig[Any]:
     """Parse string to config object."""
     try:
         return CONFIGS_MAPPING[config_name]
