@@ -35,7 +35,7 @@ class PetalsConfig(ClassificationConfig[str]):
     model = timm.create_model("resnet50", pretrained=True, in_chans=3, num_classes=dataset.num_classes)
     loss = nn.CrossEntropyLoss()
     optimiser = optim.AdamW(model.parameters(), lr=0.0001, weight_decay=0.01)
-    optimiser_scheduler = ReduceLROnPlateauWrapper(
+    optimiser_scheduler = ReduceLROnPlateauWrapper(  # type: ignore[assignment]
         optim.lr_scheduler.LambdaLR(
             optimiser,
             lambda epoch: min(1, 0.1 + 0.9 * (np.exp(epoch / 5) - 1) / (np.e - 1)),

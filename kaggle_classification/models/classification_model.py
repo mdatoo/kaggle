@@ -25,6 +25,7 @@ class ClassificationModel(pl.LightningModule):
     PyTorch model to perform image classification.
     """
 
+    # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
         model: nn.Module,
@@ -106,7 +107,7 @@ class ClassificationModel(pl.LightningModule):
     def on_train_epoch_end(self) -> None:
         """Log confusion matrix and PR curve."""
         if self.logger:
-            confusion_matrix = self.train_confusion.compute().detach().cpu().numpy().astype(int)
+            confusion_matrix = self.train_confusion.compute().detach().cpu().numpy().astype(int)  # type: ignore[func-returns-value]
 
             plt.figure(figsize=(10, 7))
             figure = sn.heatmap(pd.DataFrame(confusion_matrix), cmap="mako").get_figure()
@@ -162,7 +163,7 @@ class ClassificationModel(pl.LightningModule):
     def on_validation_epoch_end(self) -> None:
         """Log confusion matrix and PR curve."""
         if self.logger:
-            confusion_matrix = self.val_confusion.compute().detach().cpu().numpy().astype(int)
+            confusion_matrix = self.val_confusion.compute().detach().cpu().numpy().astype(int)  # type: ignore[func-returns-value]
 
             plt.figure(figsize=(10, 7))
             figure = sn.heatmap(pd.DataFrame(confusion_matrix), cmap="mako").get_figure()
