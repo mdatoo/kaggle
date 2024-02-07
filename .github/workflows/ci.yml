@@ -14,7 +14,7 @@ jobs:
     - uses: arduino/setup-task@v1
     - uses: conda-incubator/setup-miniconda@v2
       with:
-        activate-environment: $ENVIRONMENT_NAME
+        activate-environment: ${{env.ENVIRONMENT_NAME}}
         environment-file: environment.yml
         miniforge-variant: Mambaforge
         use-mamba: true
