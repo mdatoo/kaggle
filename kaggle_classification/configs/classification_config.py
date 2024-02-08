@@ -23,6 +23,7 @@ class ClassificationConfig(Generic[T]):
     Config object for an image classification task.
     """
 
+    # pylint: disable=too-many-public-methods
     @property
     def train_dataloader(self) -> DataLoader[Tuple[Union[npt.NDArray[np.uint8], torch.Tensor], T]]:
         """Dataloader for train dataset."""
