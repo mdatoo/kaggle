@@ -24,7 +24,7 @@ class PetalsConfig(ClassificationConfig[str]):
     Config object for petals classification task.
     """
 
-    experiment_name = "resnet50"
+    experiment_name = "petals"
     work_dir = "logs"
     dataset = PetalsDataset("kaggle_classification/data/petals/train/", "kaggle_classification/data/petals/labels.csv")
     train_val_split = 0.2
@@ -48,7 +48,7 @@ class PetalsConfig(ClassificationConfig[str]):
     callbacks = [
         LearningRateMonitor(logging_interval="epoch"),
         ModelCheckpoint(
-            dirpath=f"{work_dir}/checkpoints",
+            dirpath=f"{work_dir}/{experiment_name}/checkpoints",
             filename="{epoch}-{val_loss:.2f}-{val_accuracy:.2f}",
             monitor="val_loss",
         ),

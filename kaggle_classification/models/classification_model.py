@@ -126,6 +126,12 @@ class ClassificationModel(pl.LightningModule):
                     train_probs[:, image_class],
                     self.current_epoch,
                 )
+            self.logger.experiment.add_pr_curve(
+                "train_micro",
+                torch.concat([train_labels == image_class for image_class in range(train_probs.shape[1])]),
+                train_probs.transpose(0, 1).flatten(),
+                self.current_epoch,
+            )
 
         self.train_confusion.reset()
         self.train_outputs.reset()
@@ -182,6 +188,12 @@ class ClassificationModel(pl.LightningModule):
                     val_probs[:, image_class],
                     self.current_epoch,
                 )
+            self.logger.experiment.add_pr_curve(
+                "val_micro",
+                torch.concat([val_labels == image_class for image_class in range(val_probs.shape[1])]),
+                val_probs.transpose(0, 1).flatten(),
+                self.current_epoch,
+            )
 
         self.val_confusion.reset()
         self.val_outputs.reset()
