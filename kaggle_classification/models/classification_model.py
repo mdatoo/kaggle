@@ -33,6 +33,7 @@ class ClassificationModel(pl.LightningModule):
         criterion: nn.Module,
         optimiser: optim.Optimizer,
         optimiser_scheduler: optim.lr_scheduler.LRScheduler,
+        optimiser_scheduler_monitor: str,
     ) -> None:
         """Initialise object.
 
@@ -49,6 +50,7 @@ class ClassificationModel(pl.LightningModule):
         self.criterion = criterion
         self.optimiser = optimiser
         self.optimiser_scheduler = optimiser_scheduler
+        self.optimiser_scheduler_monitor = optimiser_scheduler_monitor
 
         self.train_acc = Accuracy(task="multiclass", num_classes=num_classes)
         self.train_pre = Precision(task="multiclass", num_classes=num_classes)
@@ -193,6 +195,6 @@ class ClassificationModel(pl.LightningModule):
             "optimizer": self.optimiser,
             "lr_scheduler": {
                 "scheduler": self.optimiser_scheduler,
-                "monitor": "val_loss",
+                "monitor": self.optimiser_scheduler_monitor,
             },
         }

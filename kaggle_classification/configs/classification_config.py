@@ -80,6 +80,11 @@ class ClassificationConfig(Generic[T]):
 
     @property
     @abstractmethod
+    def work_dir(self) -> str:
+        """Working directory of experiment."""
+
+    @property
+    @abstractmethod
     def dataset(self) -> ClassificationDataset[T]:
         """Train and val dataset."""
 
@@ -142,6 +147,11 @@ class ClassificationConfig(Generic[T]):
     @abstractmethod
     def optimiser_scheduler(self) -> optim.lr_scheduler.LRScheduler:
         """PyTorch LR scheduler."""
+
+    @property
+    @abstractmethod
+    def optimiser_scheduler_monitor(self) -> str:
+        """Metric monitored by LR scheduler."""
 
     @property
     @abstractmethod

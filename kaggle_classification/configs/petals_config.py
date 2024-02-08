@@ -25,6 +25,7 @@ class PetalsConfig(ClassificationConfig[str]):
     """
 
     experiment_name = "resnet50"
+    work_dir = "logs"
     dataset = PetalsDataset("kaggle_classification/data/petals/train/", "kaggle_classification/data/petals/labels.csv")
     train_val_split = 0.2
     seed = 0
@@ -43,10 +44,11 @@ class PetalsConfig(ClassificationConfig[str]):
         optimiser=optimiser,
         patience=10,
     )
+    optimiser_scheduler_monitor = "val_loss"
     callbacks = [
         LearningRateMonitor(logging_interval="epoch"),
         ModelCheckpoint(
-            dirpath="checkpoints/",
+            dirpath=f"{work_dir}/checkpoints",
             filename="{epoch}-{val_loss:.2f}-{val_accuracy:.2f}",
             monitor="val_loss",
         ),
