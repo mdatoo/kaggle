@@ -5,10 +5,5 @@ tasks:
     desc: Download petals data
     cmds:
       - |
-        if [[ -z "${CONDA_DEFAULT_ENV}" ]]; then
-          mamba run --live-stream -n ${DEFAULT_ENVIRONMENT_NAME} kaggle competitions download -c tpu-getting-started;
-          mamba run --live-stream -n ${DEFAULT_ENVIRONMENT_NAME} python convert.py;
-        else
-          mamba run --live-stream kaggle competitions download -c tpu-getting-started;
-          mamba run --live-stream python convert.py;
-        fi
+        mamba run --live-stream -n ${DEFAULT_ENVIRONMENT_NAME} kaggle competitions download -c tpu-getting-started;
+        mamba run --live-stream -n ${DEFAULT_ENVIRONMENT_NAME} python convert.py;

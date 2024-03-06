@@ -8,8 +8,10 @@
 
 1. Generate [Kaggle API credentials](https://github.com/Kaggle/kaggle-api#api-credentials)
 
+1. Build environment & download all data: `task init`
+
 ## Training
 
 `task train -- (name of config e.g. petals_config)`
 
-See the [tasks folder](kaggle_classification/tasks/) for list of tasks
+See [CONFIGS_MAPPING](kaggle_classification/configs/__init__.py) for list of configs
