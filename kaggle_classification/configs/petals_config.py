@@ -29,9 +29,10 @@ class PetalsConfig(ClassificationConfig[str]):
     dataset = PetalsDataset("kaggle_classification/data/petals/train/", "kaggle_classification/data/petals/labels.csv")
     train_val_split = 0.2
     seed = 0
-    train_batch_size = 16
+    precision = "bf16-mixed"
+    train_batch_size = 64
     train_num_workers = 8
-    val_batch_size = 16
+    val_batch_size = 64
     val_num_workers = 8
     model = timm.create_model("resnet50", pretrained=True, in_chans=3, num_classes=dataset.num_classes)
     loss = nn.CrossEntropyLoss()

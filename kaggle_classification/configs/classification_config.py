@@ -31,6 +31,7 @@ class ClassificationConfig(Generic[T]):
             dataset=self._train_dataset_with_augmentations,
             batch_size=self.train_batch_size,
             num_workers=self.train_num_workers,
+            persistent_workers=True,
             pin_memory=True,
             shuffle=True,
         )
@@ -42,6 +43,7 @@ class ClassificationConfig(Generic[T]):
             dataset=self._val_dataset_with_augmentations,
             batch_size=self.val_batch_size,
             num_workers=self.val_num_workers,
+            persistent_workers=True,
             pin_memory=True,
             shuffle=False,
         )
@@ -98,6 +100,11 @@ class ClassificationConfig(Generic[T]):
     @abstractmethod
     def seed(self) -> int:
         """Random seed for dataset splitting."""
+
+    @property
+    @abstractmethod
+    def precision(self) -> str:
+        """Floating point precision."""
 
     @property
     @abstractmethod

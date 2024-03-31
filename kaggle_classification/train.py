@@ -17,6 +17,8 @@ SEED = 0
 random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
+torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cudnn.allow_tf32 = True
 
 
 def run() -> None:
@@ -39,6 +41,7 @@ def run() -> None:
     val_dataloader = config.val_dataloader
 
     trainer = pl.Trainer(
+        precision=config.precision,  # type: ignore[arg-type]
         logger=TensorBoardLogger(config.work_dir, name=config.experiment_name),
         log_every_n_steps=1,
         num_sanity_val_steps=0,

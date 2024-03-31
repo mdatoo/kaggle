@@ -80,7 +80,6 @@ class ClassificationModel(pl.LightningModule):
         if batch_idx == 0 and self.logger:
             grid = make_grid(images, nrow=64)
             self.logger.experiment.add_image("first_batch", grid, 0)  # type: ignore[attr-defined]
-            self.logger.experiment.add_graph(self.model, images)  # type: ignore[attr-defined]
 
         outputs = self.model(images)
         _, predictions = torch.max(outputs.data, 1)
