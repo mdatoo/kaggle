@@ -103,7 +103,7 @@ class ClassificationConfig(ABC, Generic[T]):
 
     @property
     @abstractmethod
-    def epochs(self) -> str:
+    def epochs(self) -> int:
         """No of epochs."""
 
     @property
