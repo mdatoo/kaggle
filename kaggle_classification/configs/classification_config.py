@@ -1,6 +1,6 @@
 """Image classification config."""
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from functools import cached_property
 from typing import Generic, List, Tuple, TypeVar, Union
 
@@ -17,7 +17,7 @@ from ..datasets import ClassificationDataset
 T = TypeVar("T")
 
 
-class ClassificationConfig(Generic[T]):
+class ClassificationConfig(ABC, Generic[T]):
     """Image classification config.
 
     Config object for an image classification task.
@@ -103,8 +103,18 @@ class ClassificationConfig(Generic[T]):
 
     @property
     @abstractmethod
+    def epochs(self) -> str:
+        """No of epochs."""
+
+    @property
+    @abstractmethod
     def precision(self) -> str:
         """Floating point precision."""
+
+    @property
+    @abstractmethod
+    def gradient_max_magnitude(self) -> float:
+        """Clip gradients' max magnitude."""
 
     @property
     @abstractmethod

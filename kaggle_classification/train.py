@@ -41,7 +41,9 @@ def run() -> None:
     val_dataloader = config.val_dataloader
 
     trainer = pl.Trainer(
+        max_epochs=config.epochs,
         precision=config.precision,  # type: ignore[arg-type]
+        gradient_clip_val=config.gradient_max_magnitude,
         logger=TensorBoardLogger(config.work_dir, name=config.experiment_name),
         log_every_n_steps=1,
         num_sanity_val_steps=0,
