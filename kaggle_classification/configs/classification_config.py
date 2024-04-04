@@ -168,10 +168,5 @@ class ClassificationConfig(ABC, Generic[T]):
 
     @property
     @abstractmethod
-    def optimiser_scheduler_monitor(self) -> str:
-        """Metric monitored by LR scheduler."""
-
-    @property
-    @abstractmethod
     def callbacks(self) -> List[Callback]:
         """PyTorch Lightning trainer callbacks."""

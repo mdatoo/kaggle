@@ -44,10 +44,11 @@ class ClassificationDataset(Dataset[Tuple[Union[npt.NDArray[np.uint8], torch.Ten
             idx: Data index
         """
         image = cv2.imread(self.image_paths[idx], flags=cv2.IMREAD_ANYCOLOR)
-        label = self.labels[self.image_names[idx]]
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        label = np.eye(self.num_classes)[self.labels[self.image_names[idx]]]
 
         if self.transform:
-            image = self.transform(image=image)["image"]
+            image, label = list(self.transform(image=image, global_label=label).values())[:2]
 
         return image, label
 

@@ -35,7 +35,6 @@ def run() -> None:
         config.loss,
         config.optimiser,
         config.optimiser_scheduler,
-        config.optimiser_scheduler_monitor,
     )
     train_dataloader = config.train_dataloader
     val_dataloader = config.val_dataloader

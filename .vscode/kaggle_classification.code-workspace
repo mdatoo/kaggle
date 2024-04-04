@@ -9,11 +9,11 @@
         "configurations": [
             {
                 "name": "Python: Train",
-                "type": "python",
+                "type": "debugpy",
                 "request": "launch",
                 "module": "kaggle_classification.train",
                 "console": "integratedTerminal",
-                "justMyCode": true,
+                "justMyCode": false,
                 "args": [
                     "${input:config}"
                 ]

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Any, Dict
+
 import albumentations as A
 import cv2
+import numpy as np
 import timm
 from albumentations.pytorch import ToTensorV2
 from lightning.pytorch.callbacks import (
@@ -46,7 +49,6 @@ class PetalsConfig(ClassificationConfig[str]):
         ],
         milestones=[5],
     )
-    optimiser_scheduler_monitor = "val_loss"
     callbacks = [
         LearningRateMonitor(logging_interval="epoch"),
         ModelCheckpoint(
@@ -60,17 +62,31 @@ class PetalsConfig(ClassificationConfig[str]):
     @property
     def train_augmentations(self) -> A.BaseCompose:
         """Augmentations for train dataset."""
+
+        reference_data = [
+            {"image_path": image_path, "class_id": self.train_dataset.labels[image_name]}
+            for image_path, image_name in zip(self.train_dataset.image_paths, self.train_dataset.image_names)
+        ]
+
+        def read_fn(item: Dict[str, Any]) -> Dict[str, Any]:
+            image = cv2.imread(item["image_path"], flags=cv2.IMREAD_ANYCOLOR)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            label = np.eye(self.dataset.num_classes)[item["class_id"]]
+
+            return {"image": image, "global_label": label}
+
         return A.Compose(
             [
+                A.MixUp(reference_data=reference_data, read_fn=read_fn, p=0.5),
                 A.OneOf([A.HorizontalFlip(p=0.5), A.VerticalFlip(p=0.5)], p=0.5),
                 A.Transpose(p=0.2),
                 A.Rotate(limit=180, border_mode=cv2.BORDER_REFLECT_101, p=0.2),
-                A.Resize(256, 256),
-                A.RandomCrop(width=224, height=224),
+                A.Resize(height=256, width=256),
+                A.RandomCrop(height=224, width=224),
                 A.RandomBrightnessContrast(p=0.2),
                 A.Blur(p=0.2),
                 A.CoarseDropout(p=0.5),
-                A.Normalize(self.train_dataset.mean, self.train_dataset.std, 1),
+                A.Normalize(mean=self.train_dataset.mean, std=self.train_dataset.std, max_pixel_value=1),
                 ToTensorV2(),
             ]
         )
@@ -80,8 +96,8 @@ class PetalsConfig(ClassificationConfig[str]):
         """Augmentations for val dataset."""
         return A.Compose(
             [
-                A.Resize(256, 256),
-                A.Normalize(self.train_dataset.mean, self.train_dataset.std, 1),
+                A.Resize(height=256, width=256),
+                A.Normalize(mean=self.train_dataset.mean, std=self.train_dataset.std, max_pixel_value=1),
                 ToTensorV2(),
             ]
         )
