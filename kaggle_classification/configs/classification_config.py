@@ -25,7 +25,7 @@ class ClassificationConfig(ABC, Generic[T]):
 
     # pylint: disable=too-many-public-methods
     @property
-    def train_dataloader(self) -> DataLoader[Tuple[Union[npt.NDArray[np.uint8], torch.Tensor], T]]:
+    def train_dataloader(self) -> DataLoader[Tuple[Union[npt.NDArray[np.uint8], torch.Tensor], npt.NDArray[np.uint8]]]:
         """Dataloader for train dataset."""
         return DataLoader(
             dataset=self._train_dataset_with_augmentations,
@@ -37,7 +37,7 @@ class ClassificationConfig(ABC, Generic[T]):
         )
 
     @property
-    def val_dataloader(self) -> DataLoader[Tuple[Union[npt.NDArray[np.uint8], torch.Tensor], T]]:
+    def val_dataloader(self) -> DataLoader[Tuple[Union[npt.NDArray[np.uint8], torch.Tensor], npt.NDArray[np.uint8]]]:
         """Dataloader for val dataset."""
         return DataLoader(
             dataset=self._val_dataset_with_augmentations,

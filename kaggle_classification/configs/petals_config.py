@@ -20,7 +20,7 @@ from ..datasets import PetalsDataset
 from .classification_config import ClassificationConfig
 
 
-class PetalsConfig(ClassificationConfig[str]):
+class PetalsConfig(ClassificationConfig[int]):
     """Petals config.
 
     Config object for petals classification task.
@@ -64,16 +64,16 @@ class PetalsConfig(ClassificationConfig[str]):
         """Augmentations for train dataset."""
 
         reference_data = [
-            {"image_path": image_path, "class_id": self.train_dataset.labels[image_name]}
-            for image_path, image_name in zip(self.train_dataset.image_paths, self.train_dataset.image_names)
+            {"image_path": image_path, "class_id": label}
+            for image_path, label in zip(self.train_dataset.image_paths, self.train_dataset.labels)
         ]
 
         def read_fn(item: Dict[str, Any]) -> Dict[str, Any]:
             image = cv2.imread(item["image_path"], flags=cv2.IMREAD_ANYCOLOR)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            label = np.eye(self.dataset.num_classes)[item["class_id"]]
+            target = np.eye(self.dataset.num_classes)[item["class_id"]]
 
-            return {"image": image, "global_label": label}
+            return {"image": image, "global_label": target}
 
         return A.Compose(
             [

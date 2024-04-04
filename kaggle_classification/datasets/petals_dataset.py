@@ -8,7 +8,7 @@ from albumentations import BaseCompose
 from .classification_dataset import ClassificationDataset
 
 
-class PetalsDataset(ClassificationDataset[str]):
+class PetalsDataset(ClassificationDataset[int]):
     """Petals PyTorch dataset.
 
     PyTorch dataset reading from a folder of images and a csv labels file.

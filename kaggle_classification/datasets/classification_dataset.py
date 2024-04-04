@@ -5,7 +5,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property, partial
 from glob import glob
-from typing import Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Dict, Generic, List, Optional, Tuple, TypeVar, Union
 
 import cv2
 import numpy as np
@@ -19,38 +19,44 @@ from tqdm import tqdm
 T = TypeVar("T")
 
 
-class ClassificationDataset(Dataset[Tuple[Union[npt.NDArray[np.uint8], torch.Tensor], T]]):
+class ClassificationDataset(
+    Dataset[Tuple[Union[npt.NDArray[np.uint8], torch.Tensor], npt.NDArray[np.uint8]]], Generic[T]
+):
     """Image classification PyTorch dataset.
 
     PyTorch dataset reading from a folder of images.
     """
 
-    def __init__(self, image_folder: str, labels: Dict[str, T], transform: Optional[BaseCompose] = None) -> None:
+    def __init__(
+        self, image_folder: str, image_name_to_label: Dict[str, T], transform: Optional[BaseCompose] = None
+    ) -> None:
         """Initialise object.
 
         Args:
             image_folder: Path to folder of images
-            labels: Mapping from image name (filename without extension) to label
+            image_name_to_label: Mapping from image name (filename without extension) to label
             transform: Image transformations to apply
         """
         self._image_folder = image_folder
-        self.labels = labels
+        self._image_name_to_label = image_name_to_label
+        self._label_to_idx = {label: idx for idx, label in enumerate(set(self.labels))}
         self.transform = transform
 
-    def __getitem__(self, idx: int) -> Tuple[Union[npt.NDArray[np.uint8], torch.Tensor], T]:
-        """Return image and label given index.
+    def __getitem__(self, idx: int) -> Tuple[Union[npt.NDArray[np.uint8], torch.Tensor], npt.NDArray[np.uint8]]:
+        """Return image and target given index.
 
         Args:
             idx: Data index
         """
         image = cv2.imread(self.image_paths[idx], flags=cv2.IMREAD_ANYCOLOR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        label = np.eye(self.num_classes)[self.labels[self.image_names[idx]]]
+        label = self._image_name_to_label[self.image_names[idx]]
+        target = np.eye(self.num_classes)[self._label_to_idx[label]]
 
         if self.transform:
-            image, label = list(self.transform(image=image, global_label=label).values())[:2]
+            image, target = list(self.transform(image=image, global_label=target).values())[:2]
 
-        return image, label
+        return image, target
 
     def __len__(self) -> int:
         """Length of dataset."""
@@ -65,18 +71,22 @@ class ClassificationDataset(Dataset[Tuple[Union[npt.NDArray[np.uint8], torch.Ten
             test_size: Relative size of test dataset
             random_state: Random seed
         """
-        train_indices, test_indices = train_test_split(
-            list(self.labels.keys()),
+        train_image_names, test_image_names = train_test_split(
+            self.image_names,
             test_size=test_size,
-            stratify=list(self.labels.values()),
+            stratify=self.labels,
             random_state=random_state,
         )
 
         train_dataset = ClassificationDataset(
-            self.image_folder, {key: self.labels[key] for key in train_indices}, self.transform
+            self.image_folder,
+            {train_image_name: self._image_name_to_label[train_image_name] for train_image_name in train_image_names},
+            self.transform,
         )
         test_dataset = ClassificationDataset(
-            self.image_folder, {key: self.labels[key] for key in test_indices}, self.transform
+            self.image_folder,
+            {test_image_name: self._image_name_to_label[test_image_name] for test_image_name in test_image_names},
+            self.transform,
         )
 
         return train_dataset, test_dataset
@@ -117,18 +127,23 @@ class ClassificationDataset(Dataset[Tuple[Union[npt.NDArray[np.uint8], torch.Ten
         image = cv2.imread(image_path, flags=cv2.IMREAD_ANYCOLOR)
         return np.mean((image - mean) ** 2, axis=0)  # type: ignore[no-any-return]
 
-    @cached_property
+    @property
+    def labels(self) -> List[T]:
+        """Labels for each datum in dataset."""
+        return [self._image_name_to_label[image_name] for image_name in self.image_names]
+
+    @property
     def image_names(self) -> List[str]:
-        """All image names in dataset."""
+        """Image names for each datum in dataset."""
         return [self._get_image_name(image_path) for image_path in self.image_paths]
 
     @cached_property
     def image_paths(self) -> List[str]:
-        """All image paths in dataset."""
+        """Image paths for each datum in dataset."""
         return [
             image_path
             for image_path in glob(f"{self.image_folder}/**")
-            if self._get_image_name(image_path) in self.labels
+            if self._get_image_name(image_path) in self._image_name_to_label
         ]
 
     def _get_image_name(self, image_path: str) -> str:
@@ -137,10 +152,20 @@ class ClassificationDataset(Dataset[Tuple[Union[npt.NDArray[np.uint8], torch.Ten
 
     @property
     def image_folder(self) -> str:
-        """Image folder."""
+        """Path to folder of images."""
         return self._image_folder
+
+    @property
+    def image_name_to_label(self) -> Dict[str, T]:
+        """Mapping from image name (filename without extension) to label."""
+        return self._image_name_to_label
+
+    @property
+    def label_to_idx(self) -> Dict[T, int]:
+        """Mapping from label to index."""
+        return self._label_to_idx
 
     @property
     def num_classes(self) -> int:
         """Number of classes."""
-        return len(set(self.labels.values()))
+        return len(set(self.labels))
