@@ -101,13 +101,13 @@ class ClassificationModel(pl.LightningModule):
         self.val_acc.update(predictions, labels)
         self.log("val_accuracy", self.val_acc, on_step=False, on_epoch=True)
 
-        self.val_pre.update(predictions, labels)
+        self.val_pre.update(outputs, labels)
         self.log("val_precision", self.val_pre, on_step=False, on_epoch=True)
 
-        self.val_rec.update(predictions, labels)
+        self.val_rec.update(outputs, labels)
         self.log("val_recall", self.val_rec, on_step=False, on_epoch=True)
 
-        self.val_f1.update(predictions, labels)
+        self.val_f1.update(outputs, labels)
         self.log("val_f1", self.val_f1, on_step=False, on_epoch=True)
 
         self.val_confusion.update(predictions, labels)
