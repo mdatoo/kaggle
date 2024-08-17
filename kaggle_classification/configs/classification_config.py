@@ -13,6 +13,7 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 
 from ..datasets import ClassificationDataset
+from ..batch_augmentations import BatchAugmentation
 
 T = TypeVar("T")
 
@@ -120,6 +121,11 @@ class ClassificationConfig(ABC, Generic[T]):
     @abstractmethod
     def train_augmentations(self) -> BaseCompose:
         """Augmentations for train dataset."""
+    
+    @property
+    @abstractmethod
+    def train_batch_augmentations(self) -> BatchAugmentation:
+        """Batch augmentations for train dataset."""
 
     @property
     @abstractmethod

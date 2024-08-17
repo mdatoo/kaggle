@@ -16,6 +16,12 @@ from lightning.pytorch.callbacks import (
 )
 from torch import nn, optim
 
+from ..batch_augmentations import (
+    BatchAugmentation,
+    CompositeBatchAugmentation,
+    CutMixBatchAugmentation,
+    MixUpBatchAugmentation,
+)
 from ..datasets import PetalsDataset
 from .classification_config import ClassificationConfig
 
@@ -77,7 +83,6 @@ class PetalsConfig(ClassificationConfig[int]):
 
         return A.Compose(
             [
-                A.MixUp(reference_data=reference_data, read_fn=read_fn, p=0.5),
                 A.OneOf([A.HorizontalFlip(p=0.5), A.VerticalFlip(p=0.5)], p=0.5),
                 A.Transpose(p=0.2),
                 A.Rotate(limit=180, border_mode=cv2.BORDER_REFLECT_101, p=0.2),
@@ -89,6 +94,13 @@ class PetalsConfig(ClassificationConfig[int]):
                 A.Normalize(mean=self.train_dataset.mean, std=self.train_dataset.std, max_pixel_value=1),
                 ToTensorV2(),
             ]
+        )
+
+    @property
+    def train_batch_augmentations(self) -> BatchAugmentation:
+        """Batch augmentations for train dataset."""
+        return CompositeBatchAugmentation(
+            [CutMixBatchAugmentation(probability=0.5), MixUpBatchAugmentation(probability=0.5)], probability=0.2
         )
 
     @property
