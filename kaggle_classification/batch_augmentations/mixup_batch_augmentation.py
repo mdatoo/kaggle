@@ -1,6 +1,8 @@
 """MixUp batch level PyTorch augmentation."""
 
-from typing import List
+# pylint: disable=duplicate-code
+
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -24,7 +26,7 @@ class MixUpBatchAugmentation(BatchAugmentation):
         super().__init__(probability)
         self.alpha = alpha
 
-    def always_apply(self, batch: torch.Tensor) -> torch.Tensor:
+    def always_apply(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
         """Apply MixUp to batch.
         NB: Applies MixUp to all but the last element in the batch (to minimise additional memory footprint).
 
@@ -38,7 +40,9 @@ class MixUpBatchAugmentation(BatchAugmentation):
 
         return images, targets
 
-    def mix(self, images: torch.Tensor, targets: torch.Tensor, idx_0: int, idx_1: int) -> torch.Tensor:
+    def mix(
+        self, images: torch.Tensor, targets: torch.Tensor, idx_0: int, idx_1: int
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Mix two image_target pairs together.
 
         Args:
@@ -66,7 +70,7 @@ class MixUpBatchAugmentation(BatchAugmentation):
             image_1: Second image
             ratio: Mixing ratio to use
         """
-        return image_0 * ratio + image_1 * (1 - ratio)
+        return image_0 * ratio + image_1 * (1 - ratio)  # type: ignore[return-value]
 
     def mix_targets(self, target_0: torch.Tensor, target_1: torch.Tensor, ratio: float) -> torch.Tensor:
         """Mix two targets together.
@@ -76,4 +80,4 @@ class MixUpBatchAugmentation(BatchAugmentation):
             target_1: Second target
             ratio: Mixing ratio to use
         """
-        return target_0 * ratio + target_1 * (1 - ratio)
+        return target_0 * ratio + target_1 * (1 - ratio)  # type: ignore[return-value]

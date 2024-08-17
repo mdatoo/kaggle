@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
-
 import albumentations as A
 import cv2
-import numpy as np
 import timm
 from albumentations.pytorch import ToTensorV2
 from lightning.pytorch.callbacks import (
@@ -68,19 +65,6 @@ class PetalsConfig(ClassificationConfig[int]):
     @property
     def train_augmentations(self) -> A.BaseCompose:
         """Augmentations for train dataset."""
-
-        reference_data = [
-            {"image_path": image_path, "class_id": label}
-            for image_path, label in zip(self.train_dataset.image_paths, self.train_dataset.labels)
-        ]
-
-        def read_fn(item: Dict[str, Any]) -> Dict[str, Any]:
-            image = cv2.imread(item["image_path"], flags=cv2.IMREAD_ANYCOLOR)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            target = np.eye(self.dataset.num_classes)[item["class_id"]]
-
-            return {"image": image, "global_label": target}
-
         return A.Compose(
             [
                 A.OneOf([A.HorizontalFlip(p=0.5), A.VerticalFlip(p=0.5)], p=0.5),

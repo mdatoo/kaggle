@@ -1,6 +1,8 @@
 """CutMix batch level PyTorch augmentation."""
 
-from typing import List
+# pylint: disable=duplicate-code
+
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -24,7 +26,7 @@ class CutMixBatchAugmentation(BatchAugmentation):
         super().__init__(probability)
         self.alpha = alpha
 
-    def always_apply(self, batch: torch.Tensor) -> torch.Tensor:
+    def always_apply(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
         """Apply CutMix to batch.
         NB: Applies CutMix to all but the last element in the batch (to minimise additional memory footprint).
 
@@ -38,7 +40,9 @@ class CutMixBatchAugmentation(BatchAugmentation):
 
         return images, targets
 
-    def mix(self, images: torch.Tensor, targets: torch.Tensor, idx_0: int, idx_1: int) -> torch.Tensor:
+    def mix(
+        self, images: torch.Tensor, targets: torch.Tensor, idx_0: int, idx_1: int
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Mix two image_target pairs together.
 
         Args:
@@ -82,4 +86,4 @@ class CutMixBatchAugmentation(BatchAugmentation):
             target_1: Second target
             ratio: Mixing ratio to use
         """
-        return target_0 * ratio + target_1 * (1 - ratio)
+        return target_0 * ratio + target_1 * (1 - ratio)  # type: ignore[return-value]

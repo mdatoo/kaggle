@@ -1,6 +1,6 @@
 """Composite batch level PyTorch augmentation."""
 
-from typing import List
+from typing import List, Tuple
 
 import torch
 
@@ -23,7 +23,7 @@ class CompositeBatchAugmentation(BatchAugmentation):
         super().__init__(probability)
         self.augmentations = augmentations
 
-    def always_apply(self, batch: torch.Tensor) -> torch.Tensor:
+    def always_apply(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
         """Apply augmentations to batch.
 
         Args:

@@ -1,6 +1,7 @@
 """Batch level PyTorch augmentation."""
 
 from abc import ABC, abstractmethod
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -20,7 +21,7 @@ class BatchAugmentation(ABC):
         """
         self.probability = probability
 
-    def apply(self, batch: torch.Tensor) -> torch.Tensor:
+    def apply(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
         """Possibly apply augmentation to batch.
 
         Args:
@@ -31,7 +32,7 @@ class BatchAugmentation(ABC):
         return batch
 
     @abstractmethod
-    def always_apply(self, batch: torch.Tensor) -> torch.Tensor:
+    def always_apply(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
         """Apply augmentation to batch.
 
         Args:
