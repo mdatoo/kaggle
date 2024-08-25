@@ -28,6 +28,14 @@ class ClassificationConfig(ABC, Generic[T]):
     @property
     def train_dataloader(self) -> DataLoader[Tuple[Union[npt.NDArray[np.uint8], torch.Tensor], npt.NDArray[np.uint8]]]:
         """Dataloader for train dataset."""
+
+        def _collate(batch: List[Tuple[torch.Tensor, torch.Tensor]]) -> Tuple[torch.Tensor, torch.Tensor]:
+            images, targets = zip(*batch)
+            images = torch.stack(images)
+            targets = torch.from_numpy(np.array(targets))
+
+            return self.train_batch_augmentations.apply((images, targets))
+
         return DataLoader(
             dataset=self._train_dataset_with_augmentations,
             batch_size=self.train_batch_size,
@@ -35,6 +43,7 @@ class ClassificationConfig(ABC, Generic[T]):
             persistent_workers=True,
             pin_memory=True,
             shuffle=True,
+            collate_fn=_collate,
         )
 
     @property

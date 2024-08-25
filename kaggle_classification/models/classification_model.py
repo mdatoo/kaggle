@@ -18,8 +18,6 @@ from torchmetrics import (
 )
 from torchvision.utils import make_grid
 
-from ..batch_augmentations import BatchAugmentation
-
 
 class ClassificationModel(pl.LightningModule):
     """Image classification PyTorch model.
@@ -35,7 +33,6 @@ class ClassificationModel(pl.LightningModule):
         criterion: nn.Module,
         optimiser: optim.Optimizer,
         optimiser_scheduler: optim.lr_scheduler.LRScheduler,
-        train_batch_augmentations: BatchAugmentation,
     ) -> None:
         """Initialise object.
 
@@ -52,7 +49,6 @@ class ClassificationModel(pl.LightningModule):
         self.criterion = criterion
         self.optimiser = optimiser
         self.optimiser_scheduler = optimiser_scheduler
-        self.train_batch_augmentations = train_batch_augmentations
 
         self.val_acc = Accuracy(task="multiclass", num_classes=num_classes)
         self.val_pre = Precision(task="multiclass", num_classes=num_classes)
@@ -69,7 +65,7 @@ class ClassificationModel(pl.LightningModule):
             batch: Current dataloader batch (images/targets)
             batch_idx: Index of current batch
         """
-        images, targets = self.train_batch_augmentations.apply(batch)
+        images, targets = batch
 
         if batch_idx == 0 and self.logger:
             grid = make_grid(images, nrow=64)
