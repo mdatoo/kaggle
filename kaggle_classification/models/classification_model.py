@@ -49,12 +49,12 @@ class ClassificationModel(pl.LightningModule):
         self.optimiser_scheduler = optimiser_scheduler
 
         task = "multiclass" if num_classes > 2 else "binary"
-        self.val_acc = Accuracy(task=task, num_classes=num_classes)
-        self.val_pre = Precision(task=task, num_classes=num_classes)
-        self.val_rec = Recall(task=task, num_classes=num_classes)
-        self.val_f1 = F1Score(task=task, num_classes=num_classes)
-        self.val_confusion = ConfusionMatrix(task=task, num_classes=num_classes)
-        self.val_pr_curve = PrecisionRecallCurve(task=task, num_classes=num_classes)
+        self.val_acc = Accuracy(task=task, num_classes=num_classes)  # type: ignore[arg-type]
+        self.val_pre = Precision(task=task, num_classes=num_classes)  # type: ignore[arg-type]
+        self.val_rec = Recall(task=task, num_classes=num_classes)  # type: ignore[arg-type]
+        self.val_f1 = F1Score(task=task, num_classes=num_classes)  # type: ignore[arg-type]
+        self.val_confusion = ConfusionMatrix(task=task, num_classes=num_classes)  # type: ignore[arg-type]
+        self.val_pr_curve = PrecisionRecallCurve(task=task, num_classes=num_classes)  # type: ignore[arg-type]
 
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:  # pylint: disable=arguments-differ
         """Calculate and log metrics/loss to tensorboard.
