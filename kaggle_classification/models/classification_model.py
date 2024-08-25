@@ -1,6 +1,6 @@
 """Image classification PyTorch model."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Generic, TypeVar
 
 import lightning.pytorch as pl
 import matplotlib.pyplot as plt
@@ -11,8 +11,10 @@ from torch import nn, optim
 from torchmetrics import Accuracy, CatMetric, ConfusionMatrix
 from torchvision.utils import make_grid
 
+T = TypeVar("T")
 
-class ClassificationModel(pl.LightningModule):
+
+class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=too-many-ancestors
     """Image classification PyTorch model.
 
     PyTorch model to perform image classification.
@@ -22,7 +24,7 @@ class ClassificationModel(pl.LightningModule):
     def __init__(
         self,
         model: nn.Module,
-        num_classes: int,
+        idx_to_label: Dict[int, T],
         criterion: nn.Module,
         optimiser: optim.Optimizer,
         optimiser_scheduler: optim.lr_scheduler.LRScheduler,
@@ -31,7 +33,7 @@ class ClassificationModel(pl.LightningModule):
 
         Args:
             model: Backbone to use
-            num_classes: Number of classification classes
+            idx_to_label: Mapping from idx to label
             criterion: Loss function to use
             optimiser: Optimiser to use
             optimiser_scheduler: LR scheduler to use
@@ -39,12 +41,13 @@ class ClassificationModel(pl.LightningModule):
         super().__init__()
 
         self.model = model
+        self.idx_to_label = idx_to_label
         self.criterion = criterion
         self.optimiser = optimiser
         self.optimiser_scheduler = optimiser_scheduler
 
-        self.val_acc = Accuracy(task="multiclass", num_classes=num_classes)
-        self.val_confusion = ConfusionMatrix(task="multiclass", num_classes=num_classes)
+        self.val_acc = Accuracy(task="multiclass", num_classes=len(idx_to_label))
+        self.val_confusion = ConfusionMatrix(task="multiclass", num_classes=len(idx_to_label))
         self.val_outputs = CatMetric()
         self.val_labels = CatMetric()
 
@@ -96,24 +99,27 @@ class ClassificationModel(pl.LightningModule):
             confusion_matrix = self.val_confusion.compute().detach().cpu().numpy().astype(int)  # type: ignore[func-returns-value]
 
             plt.figure(figsize=(10, 7))
-            figure = sn.heatmap(pd.DataFrame(confusion_matrix), cmap="mako").get_figure()
+            figure = sn.heatmap(
+                pd.DataFrame(confusion_matrix, index=self.idx_to_label.values(), columns=self.idx_to_label.values()),
+                cmap="mako",
+            ).get_figure()
             plt.close(figure)
             self.logger.experiment.add_figure("val_confusion", figure, self.current_epoch)  # type: ignore[attr-defined]
 
             val_probs = torch.softmax(self.val_outputs.compute(), 1)
             val_labels = self.val_labels.compute()
 
-            for image_class in range(val_probs.shape[1]):
+            for class_idx, class_name in self.idx_to_label.items():
                 self.logger.experiment.add_pr_curve(  # type: ignore[attr-defined]
-                    f"val_{image_class}",
-                    val_labels == image_class,
-                    val_probs[:, image_class],
+                    f"val_{class_name}",
+                    val_labels == class_idx,
+                    val_probs[:, class_idx],
                     self.current_epoch,
                 )
 
             self.logger.experiment.add_pr_curve(  # type: ignore[attr-defined]
                 "val_micro",
-                torch.concat([val_labels == image_class for image_class in range(val_probs.shape[1])]),  # type: ignore[misc]
+                torch.concat([val_labels == class_idx for class_idx in self.idx_to_label.keys()]),  # type: ignore[misc]
                 val_probs.transpose(0, 1).flatten(),
                 self.current_epoch,
             )

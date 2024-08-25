@@ -39,6 +39,7 @@ class ClassificationDataset(
         self._image_folder = image_folder
         self._image_path_to_label = image_path_to_label
         self._label_to_idx = {label: idx for idx, label in enumerate(set(self.labels))}
+        self._idx_to_label = {idx: label for label, idx in self._label_to_idx.items()}
         self.transform = transform
 
     def __getitem__(self, idx: int) -> Tuple[Union[npt.NDArray[np.uint8], torch.Tensor], npt.NDArray[np.uint8]]:
@@ -151,6 +152,11 @@ class ClassificationDataset(
     def label_to_idx(self) -> Dict[T, int]:
         """Mapping from label to index."""
         return self._label_to_idx
+
+    @property
+    def idx_to_label(self) -> Dict[int, T]:
+        """Mapping from index to label."""
+        return self._idx_to_label
 
     @property
     def num_classes(self) -> int:
