@@ -1,8 +1,8 @@
 # Repo specific
-train/
-test/
 labels.csv
 logs/
+kaggle_classification/data/**/*.jpg
+kaggle_classification/data/**/*.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

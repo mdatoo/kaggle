@@ -1,0 +1,9 @@
+version: '3'
+
+tasks:
+  download:
+    desc: Download catsdogs data
+    cmds:
+      - |
+        mamba run --live-stream -n ${DEFAULT_ENVIRONMENT_NAME} kaggle datasets download shaunthesheep/microsoft-catsvsdogs-dataset;
+        mamba run --live-stream -n ${DEFAULT_ENVIRONMENT_NAME} python convert.py;

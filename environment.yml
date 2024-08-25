@@ -20,8 +20,10 @@ dependencies:
       - numpy==1.26.2
       - opencv-python==4.8.1.78
       - pandas==2.1.1
+      - Pillow==10.4.0
       - pre-commit==3.6.0
       - pylint==3.0.0
+      - scikit-learn==1.5.1
       - seaborn==0.13.0
       - tensorboard==2.14.1
       - tensorflow==2.14.0

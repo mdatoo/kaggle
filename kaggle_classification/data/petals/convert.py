@@ -1,7 +1,7 @@
 """Convert tensorflow records to png and json."""
 
 from glob import glob
-from os import makedirs, remove
+from os import makedirs, path, remove
 from shutil import rmtree, unpack_archive
 
 import pandas as pd
@@ -39,7 +39,7 @@ def decode_train() -> None:
     train_labels = {}
 
     for subset in tqdm(["train", "val"]):
-        for tf_record_dataset_path in tqdm(glob(f"tfrecords-jpeg-512x512/{subset}/**")):
+        for tf_record_dataset_path in tqdm(glob(path.join("tfrecords-jpeg-512x512", subset, "**"))):
             tf_record_dataset = tf.data.TFRecordDataset(tf_record_dataset_path)
             for tf_record in tf_record_dataset:
                 record = tf.io.parse_single_example(tf_record, TRAIN_RECORD_SCHEMA)
@@ -48,7 +48,7 @@ def decode_train() -> None:
                 image = record["image"].numpy()
 
                 train_labels[idx] = {"label": label}
-                with open(f"train/{idx}.png", "wb") as file:
+                with open(path.join("train", f"{idx}.png"), "wb") as file:
                     file.write(image)
 
     print("Saving labels")
@@ -67,7 +67,7 @@ def decode_test() -> None:
             idx = record["id"].numpy().decode()
             image = record["image"].numpy()
 
-            with open(f"test/{idx}.png", "wb") as file:
+            with open(path.join("test", f"{idx}.png"), "wb") as file:
                 file.write(image)
 
 

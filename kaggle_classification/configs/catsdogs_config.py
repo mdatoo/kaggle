@@ -1,4 +1,4 @@
-"""Petals config."""
+"""Catsdogs config."""
 
 # pylint: disable=duplicate-code
 
@@ -19,19 +19,19 @@ from ..batch_augmentations import (
     CutMixBatchAugmentation,
     MixUpBatchAugmentation,
 )
-from ..datasets import PetalsDataset
+from ..datasets import CatsdogsDataset
 from .classification_config import ClassificationConfig
 
 
-class PetalsConfig(ClassificationConfig[int]):
-    """Petals config.
+class CatsdogsConfig(ClassificationConfig[str]):
+    """Catsdogs config.
 
-    Config object for petals classification task.
+    Config object for catsdogs classification task.
     """
 
-    experiment_name = "petals"
+    experiment_name = "catsdogs"
     work_dir = "logs"
-    dataset = PetalsDataset("kaggle_classification/data/petals/train/", "kaggle_classification/data/petals/labels.csv")
+    dataset = CatsdogsDataset("kaggle_classification/data/catsdogs/")
     train_val_split = 0.2
     seed = 0
     epochs = 75

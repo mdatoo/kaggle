@@ -1,12 +1,16 @@
 """Config files."""
 
 from argparse import ArgumentTypeError
-from typing import Any
+from typing import Any, Dict
 
+from .catsdogs_config import CatsdogsConfig
 from .classification_config import ClassificationConfig
 from .petals_config import PetalsConfig
 
-CONFIGS_MAPPING = {"petals_config": PetalsConfig()}
+CONFIGS_MAPPING: Dict[str, ClassificationConfig[Any]] = {
+    "catsdogs_config": CatsdogsConfig(),
+    "petals_config": PetalsConfig(),
+}
 
 
 def config_argparse(config_name: str) -> ClassificationConfig[Any]:

@@ -1,5 +1,6 @@
 """Petals PyTorch dataset."""
 
+from os import path
 from typing import Optional
 
 import pandas as pd
@@ -22,6 +23,9 @@ class PetalsDataset(ClassificationDataset[int]):
             labels_file: Path to labels file
             transform: Image transformations to apply
         """
-        labels_df = pd.read_csv(labels_file).set_index("id")
+        image_name_to_label = pd.read_csv(labels_file).set_index("id").to_dict()["label"]
+        image_path_to_label = {
+            path.join(image_folder, f"{filename}.png"): label for filename, label in image_name_to_label.items()
+        }
 
-        super().__init__(image_folder, labels_df.to_dict()["label"], transform)
+        super().__init__(image_folder, image_path_to_label, transform)

@@ -4,6 +4,9 @@ env:
   DEFAULT_ENVIRONMENT_NAME: kaggle_classification
 
 includes:
+  catsdogs:
+    taskfile: ./kaggle_classification/data/catsdogs/Taskfile.yml
+    dir: ./kaggle_classification/data/catsdogs/
   petals:
     taskfile: ./kaggle_classification/data/petals/Taskfile.yml
     dir: ./kaggle_classification/data/petals/
@@ -28,12 +31,13 @@ tasks:
         else
           conda install -y mamba; mamba env create -f environment.yml -n $DEFAULT_ENVIRONMENT_NAME;
         fi
-  
+
   download:
     desc: Download all data
     cmds:
+      - task: catsdogs:download
       - task: petals:download
-  
+
   train:
     desc: Run classification training
     cmds:
