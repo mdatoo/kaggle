@@ -42,6 +42,7 @@ class ClassificationConfig(ABC, Generic[T]):
             num_workers=self.train_num_workers,
             persistent_workers=True,
             pin_memory=True,
+            prefetch_factor=4,
             shuffle=True,
             collate_fn=_collate,
         )
@@ -54,6 +55,7 @@ class ClassificationConfig(ABC, Generic[T]):
             batch_size=self.val_batch_size,
             num_workers=self.val_num_workers,
             persistent_workers=True,
+            prefetch_factor=4,
             pin_memory=True,
             shuffle=False,
         )
