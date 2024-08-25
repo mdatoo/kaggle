@@ -4,16 +4,11 @@ from typing import Any, Dict
 
 import lightning.pytorch as pl
 import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sn
 import torch
 from torch import nn, optim
-from torchmetrics import (
-    Accuracy,
-    ConfusionMatrix,
-    F1Score,
-    Precision,
-    PrecisionRecallCurve,
-    Recall,
-)
+from torchmetrics import Accuracy, CatMetric, ConfusionMatrix
 from torchvision.utils import make_grid
 
 
@@ -48,13 +43,10 @@ class ClassificationModel(pl.LightningModule):
         self.optimiser = optimiser
         self.optimiser_scheduler = optimiser_scheduler
 
-        task = "multiclass" if num_classes > 2 else "binary"
-        self.val_acc = Accuracy(task=task, num_classes=num_classes)  # type: ignore[arg-type]
-        self.val_pre = Precision(task=task, num_classes=num_classes)  # type: ignore[arg-type]
-        self.val_rec = Recall(task=task, num_classes=num_classes)  # type: ignore[arg-type]
-        self.val_f1 = F1Score(task=task, num_classes=num_classes)  # type: ignore[arg-type]
-        self.val_confusion = ConfusionMatrix(task=task, num_classes=num_classes)  # type: ignore[arg-type]
-        self.val_pr_curve = PrecisionRecallCurve(task=task, num_classes=num_classes)  # type: ignore[arg-type]
+        self.val_acc = Accuracy(task="multiclass", num_classes=num_classes)
+        self.val_confusion = ConfusionMatrix(task="multiclass", num_classes=num_classes)
+        self.val_outputs = CatMetric()
+        self.val_labels = CatMetric()
 
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:  # pylint: disable=arguments-differ
         """Calculate and log metrics/loss to tensorboard.
@@ -94,33 +86,41 @@ class ClassificationModel(pl.LightningModule):
         self.val_acc.update(outputs, labels)
         self.log("val_accuracy", self.val_acc, on_step=False, on_epoch=True)
 
-        self.val_pre.update(outputs, labels)
-        self.log("val_precision", self.val_pre, on_step=False, on_epoch=True)
-
-        self.val_rec.update(outputs, labels)
-        self.log("val_recall", self.val_rec, on_step=False, on_epoch=True)
-
-        self.val_f1.update(outputs, labels)
-        self.log("val_f1", self.val_f1, on_step=False, on_epoch=True)
-
         self.val_confusion.update(outputs, labels)
-        self.val_pr_curve.update(outputs, labels)
+        self.val_outputs.update(outputs)
+        self.val_labels.update(labels)
 
     def on_validation_epoch_end(self) -> None:
         """Log confusion matrix and PR curve."""
         if self.logger:
+            confusion_matrix = self.val_confusion.compute().detach().cpu().numpy().astype(int)  # type: ignore[func-returns-value]
+
             plt.figure(figsize=(10, 7))
-            figure, _ = self.val_confusion.plot(add_text=False)
+            figure = sn.heatmap(pd.DataFrame(confusion_matrix), cmap="mako").get_figure()
             plt.close(figure)
             self.logger.experiment.add_figure("val_confusion", figure, self.current_epoch)  # type: ignore[attr-defined]
 
-            plt.figure(figsize=(10, 7))
-            figure, _ = self.val_pr_curve.plot()
-            plt.close(figure)
-            self.logger.experiment.add_figure("val_pr_curve", figure, self.current_epoch)  # type: ignore[attr-defined]
+            val_probs = torch.softmax(self.val_outputs.compute(), 1)
+            val_labels = self.val_labels.compute()
+
+            for image_class in range(val_probs.shape[1]):
+                self.logger.experiment.add_pr_curve(  # type: ignore[attr-defined]
+                    f"val_{image_class}",
+                    val_labels == image_class,
+                    val_probs[:, image_class],
+                    self.current_epoch,
+                )
+
+            self.logger.experiment.add_pr_curve(  # type: ignore[attr-defined]
+                "val_micro",
+                torch.concat([val_labels == image_class for image_class in range(val_probs.shape[1])]),  # type: ignore[misc]
+                val_probs.transpose(0, 1).flatten(),
+                self.current_epoch,
+            )
 
         self.val_confusion.reset()
-        self.val_pr_curve.reset()
+        self.val_outputs.reset()
+        self.val_labels.reset()
 
     def configure_optimizers(  # type: ignore[override]
         self,
