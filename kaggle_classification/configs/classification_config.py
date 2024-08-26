@@ -100,6 +100,11 @@ class ClassificationConfig(ABC, Generic[T]):
 
     @property
     @abstractmethod
+    def version(self) -> str:
+        """Version of experiment."""
+
+    @property
+    @abstractmethod
     def dataset(self) -> ClassificationDataset[T]:
         """Train and val dataset."""
 
