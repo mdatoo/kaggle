@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from os import path
 
 import albumentations as A
@@ -31,6 +32,7 @@ class CatsdogsConfig(ClassificationConfig[str]):
 
     experiment_name = "catsdogs"
     work_dir = "logs"
+    version = str(datetime.now())
     dataset = CatsdogsDataset("kaggle_classification/data/catsdogs/")
     train_val_split = 0.2
     seed = 0
@@ -55,7 +57,7 @@ class CatsdogsConfig(ClassificationConfig[str]):
     callbacks = [
         LearningRateMonitor(logging_interval="epoch"),
         ModelCheckpoint(
-            dirpath=path.join(work_dir, experiment_name, "checkpoints"),
+            dirpath=path.join(work_dir, experiment_name, version),
             filename="{epoch}-{val_loss:.2f}-{val_accuracy:.2f}",
             monitor="val_loss",
         ),

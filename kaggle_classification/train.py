@@ -43,7 +43,7 @@ def run() -> None:
         max_epochs=config.epochs,
         precision=config.precision,  # type: ignore[arg-type]
         gradient_clip_val=config.gradient_max_magnitude,
-        logger=TensorBoardLogger(config.work_dir, name=config.experiment_name),
+        logger=TensorBoardLogger(config.work_dir, config.experiment_name, config.version),
         log_every_n_steps=1,
         num_sanity_val_steps=0,
         callbacks=config.callbacks,
