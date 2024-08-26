@@ -91,7 +91,7 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
                     ax.axis("off")
                     ax.imshow((np.transpose(images[idx].cpu(), (1, 2, 0)) * self.std + self.mean).int())  # type: ignore[attr-defined]
                     ax.set_title(
-                        f"Predicted: {predictions[idx]} ({probabilities[idx, predictions[idx]] * 100:.2f}%)",
+                        f"Predicted: {self.idx_to_label[predictions[idx].item()]} ({probabilities[idx, predictions[idx]] * 100:.2f}%)",
                         fontsize=8,
                     )
                 plt.subplots_adjust(wspace=0, hspace=0)
@@ -126,7 +126,7 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
                 ax.axis("off")
                 ax.imshow((np.transpose(images[idx].cpu(), (1, 2, 0)) * self.std + self.mean).int())  # type: ignore[attr-defined]
                 ax.set_title(
-                    f"Predicted: {predictions[idx]} ({probabilities[idx, predictions[idx]] * 100:.2f}%), Actual: {labels[idx]}",
+                    f"Predicted: {self.idx_to_label[predictions[idx].item()]} ({probabilities[idx, predictions[idx]] * 100:.2f}%), Actual: {self.idx_to_label[labels[idx].item()]}",
                     fontsize=8,
                 )
             plt.subplots_adjust(wspace=0, hspace=0)
