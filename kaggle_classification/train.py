@@ -31,7 +31,7 @@ def run() -> None:
 
     classification_model = ClassificationModel(
         config.model,
-        config.dataset.idx_to_label,
+        config.train_dataset,
         config.loss,
         config.optimiser,
         config.optimiser_scheduler,

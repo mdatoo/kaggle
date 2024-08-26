@@ -4,12 +4,15 @@ from typing import Any, Dict, Generic, TypeVar
 
 import lightning.pytorch as pl
 import matplotlib.pyplot as plt
+import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import seaborn as sn
 import torch
 from torch import nn, optim
 from torchmetrics import Accuracy, CatMetric, ConfusionMatrix
-from torchvision.utils import make_grid
+
+from ..datasets import ClassificationDataset
 
 T = TypeVar("T")
 
@@ -24,7 +27,7 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
     def __init__(
         self,
         model: nn.Module,
-        idx_to_label: Dict[int, T],
+        train_dataset: ClassificationDataset[T],
         criterion: nn.Module,
         optimiser: optim.Optimizer,
         optimiser_scheduler: optim.lr_scheduler.LRScheduler,
@@ -33,7 +36,7 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
 
         Args:
             model: Backbone to use
-            idx_to_label: Mapping from idx to label
+            train_dataset: Train dataset to use
             criterion: Loss function to use
             optimiser: Optimiser to use
             optimiser_scheduler: LR scheduler to use
@@ -41,15 +44,30 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
         super().__init__()
 
         self.model = model
-        self.idx_to_label = idx_to_label
+        self.train_dataset = train_dataset
         self.criterion = criterion
         self.optimiser = optimiser
         self.optimiser_scheduler = optimiser_scheduler
 
-        self.val_acc = Accuracy(task="multiclass", num_classes=len(idx_to_label))
-        self.val_confusion = ConfusionMatrix(task="multiclass", num_classes=len(idx_to_label))
+        self.val_acc = Accuracy(task="multiclass", num_classes=len(self.idx_to_label))
+        self.val_confusion = ConfusionMatrix(task="multiclass", num_classes=len(self.idx_to_label))
         self.val_outputs = CatMetric()
         self.val_labels = CatMetric()
+
+    @property
+    def idx_to_label(self) -> Dict[int, T]:
+        """Mapping from index to label."""
+        return self.train_dataset.idx_to_label
+
+    @property
+    def mean(self) -> npt.NDArray[np.uint8]:
+        """Mean of all images in dataset."""
+        return self.train_dataset.mean
+
+    @property
+    def std(self) -> npt.NDArray[np.uint8]:
+        """Standard deviation of all images in dataset."""
+        return self.train_dataset.std
 
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:  # pylint: disable=arguments-differ
         """Calculate and log metrics/loss to tensorboard.
@@ -60,28 +78,61 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
         """
         images, targets = batch
 
-        if batch_idx == 0 and self.logger:
-            grid = make_grid(images, nrow=64)
-            self.logger.experiment.add_image("first_batch", grid, 0)  # type: ignore[attr-defined]
-
         outputs = self.model(images)
+
+        if batch_idx == 0 and self.logger:
+            with torch.no_grad():
+                figure = plt.figure(figsize=(20, 20))
+                probabilities = torch.softmax(outputs, 1)
+                _, predictions = torch.max(outputs, 1)
+
+                for idx in range(64):
+                    ax = figure.add_subplot(8, 8, idx + 1)
+                    ax.axis("off")
+                    ax.imshow((np.transpose(images[idx].cpu(), (1, 2, 0)) * self.std + self.mean).int())  # type: ignore[attr-defined]
+                    ax.set_title(
+                        f"Predicted: {predictions[idx]} ({probabilities[idx, predictions[idx]] * 100:.2f}%)",
+                        fontsize=8,
+                    )
+                plt.subplots_adjust(wspace=0, hspace=0)
+                plt.tight_layout()
+                plt.close(figure)
+                self.logger.experiment.add_figure("train_first_batch", figure, self.current_epoch)  # type: ignore[attr-defined]
 
         loss: torch.Tensor = self.criterion(outputs, targets)
         self.log("train_loss", loss, on_step=True, on_epoch=False)
 
         return loss
 
-    def validation_step(self, batch: torch.Tensor, _: int) -> None:  # pylint: disable=arguments-differ
+    def validation_step(self, batch: torch.Tensor, batch_idx: int) -> None:  # pylint: disable=arguments-differ
         """Calculate and log metrics/loss to tensorboard.
 
         Args:
             batch: Current dataloader batch (images/targets)
-            _: Unused (index of current batch)
+            batch_idx: Index of current batch
         """
         images, targets = batch
         _, labels = torch.max(targets, 1)
 
         outputs = self.model(images)
+
+        if batch_idx == 0 and self.logger:
+            figure = plt.figure(figsize=(20, 20))
+            probabilities = torch.softmax(outputs, 1)
+            _, predictions = torch.max(outputs, 1)
+
+            for idx in range(64):
+                ax = figure.add_subplot(8, 8, idx + 1)
+                ax.axis("off")
+                ax.imshow((np.transpose(images[idx].cpu(), (1, 2, 0)) * self.std + self.mean).int())  # type: ignore[attr-defined]
+                ax.set_title(
+                    f"Predicted: {predictions[idx]} ({probabilities[idx, predictions[idx]] * 100:.2f}%), Actual: {labels[idx]}",
+                    fontsize=8,
+                )
+            plt.subplots_adjust(wspace=0, hspace=0)
+            plt.tight_layout()
+            plt.close(figure)
+            self.logger.experiment.add_figure("val_first_batch", figure, self.current_epoch)  # type: ignore[attr-defined]
 
         loss = self.criterion(outputs, targets)
         self.log("val_loss", loss, on_step=False, on_epoch=True)
@@ -98,7 +149,7 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
         if self.logger:
             confusion_matrix = self.val_confusion.compute().detach().cpu().numpy().astype(int)  # type: ignore[func-returns-value]
 
-            plt.figure(figsize=(10, 7))
+            plt.figure(figsize=(20, 20))
             figure = sn.heatmap(
                 pd.DataFrame(confusion_matrix, index=self.idx_to_label.values(), columns=self.idx_to_label.values()),
                 cmap="mako",
