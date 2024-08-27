@@ -43,7 +43,10 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
         """
         super().__init__()
 
-        self.model = model
+        self.backbone = model
+        self.classifier = model.get_classifier()
+        self.backbone.reset_classifier(0)
+
         self.train_dataset = train_dataset
         self.criterion = criterion
         self.optimiser = optimiser
@@ -78,11 +81,14 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
         """
         images, targets = batch
 
-        outputs = self.model(images)
+        outputs = self.classifier(self.backbone((images)))
+
+        loss: torch.Tensor = self.criterion(outputs, targets)
+        self.log("train_loss", loss, on_step=True, on_epoch=False)
 
         if batch_idx == 0 and self.logger:
             with torch.no_grad():
-                figure = plt.figure(figsize=(20, 20))
+                figure = plt.figure(figsize=(10, 10))
                 probabilities = torch.softmax(outputs, 1)
                 _, predictions = torch.max(outputs, 1)
 
@@ -92,15 +98,12 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
                     ax.imshow((np.transpose(images[idx].cpu(), (1, 2, 0)) * self.std + self.mean).int())  # type: ignore[attr-defined]
                     ax.set_title(
                         f"Predicted: {self.idx_to_label[predictions[idx].item()]} ({probabilities[idx, predictions[idx]] * 100:.2f}%)",
-                        fontsize=8,
+                        fontsize=6,
                     )
                 plt.subplots_adjust(wspace=0, hspace=0)
                 plt.tight_layout()
                 plt.close(figure)
                 self.logger.experiment.add_figure("train_first_batch", figure, self.current_epoch)  # type: ignore[attr-defined]
-
-        loss: torch.Tensor = self.criterion(outputs, targets)
-        self.log("train_loss", loss, on_step=True, on_epoch=False)
 
         return loss
 
@@ -114,25 +117,8 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
         images, targets = batch
         _, labels = torch.max(targets, 1)
 
-        outputs = self.model(images)
-
-        if batch_idx == 0 and self.logger:
-            figure = plt.figure(figsize=(20, 20))
-            probabilities = torch.softmax(outputs, 1)
-            _, predictions = torch.max(outputs, 1)
-
-            for idx in range(64):
-                ax = figure.add_subplot(8, 8, idx + 1)
-                ax.axis("off")
-                ax.imshow((np.transpose(images[idx].cpu(), (1, 2, 0)) * self.std + self.mean).int())  # type: ignore[attr-defined]
-                ax.set_title(
-                    f"Predicted: {self.idx_to_label[predictions[idx].item()]} ({probabilities[idx, predictions[idx]] * 100:.2f}%), Actual: {self.idx_to_label[labels[idx].item()]}",
-                    fontsize=8,
-                )
-            plt.subplots_adjust(wspace=0, hspace=0)
-            plt.tight_layout()
-            plt.close(figure)
-            self.logger.experiment.add_figure("val_first_batch", figure, self.current_epoch)  # type: ignore[attr-defined]
+        features = self.backbone(images)
+        outputs = self.classifier(features)
 
         loss = self.criterion(outputs, targets)
         self.log("val_loss", loss, on_step=False, on_epoch=True)
@@ -144,12 +130,48 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
         self.val_outputs.update(outputs)
         self.val_labels.update(labels)
 
+        if batch_idx == 0 and self.logger:
+            if self.current_epoch == 0:
+                self.logger.experiment.add_graph(self.backbone, images[:1])  # type: ignore[attr-defined]
+
+            self.logger.experiment.add_embedding(  # type: ignore[attr-defined]
+                torch.flatten(
+                    features[:64].cpu().float(),
+                    start_dim=1,
+                ),
+                [self.idx_to_label[label.item()] for label in labels[:64]],
+                (
+                    images[:64].cpu() * torch.unsqueeze(torch.unsqueeze(torch.tensor(self.std), -1), -1)
+                    + torch.unsqueeze(torch.unsqueeze(torch.tensor(self.mean), -1), -1)
+                )
+                / 255.0,
+                self.current_epoch,
+                "val_embedding",
+            )
+
+            figure = plt.figure(figsize=(10, 10))
+            probabilities = torch.softmax(outputs, 1)
+            _, predictions = torch.max(outputs, 1)
+
+            for idx in range(64):
+                ax = figure.add_subplot(8, 8, idx + 1)
+                ax.axis("off")
+                ax.imshow((np.transpose(images[idx].cpu(), (1, 2, 0)) * self.std + self.mean).int())  # type: ignore[attr-defined]
+                ax.set_title(
+                    f"Predicted: {self.idx_to_label[predictions[idx].item()]} ({probabilities[idx, predictions[idx]] * 100:.2f}%)\nActual: {self.idx_to_label[labels[idx].item()]}",
+                    fontsize=6,
+                )
+            plt.subplots_adjust(wspace=0, hspace=0)
+            plt.tight_layout()
+            plt.close(figure)
+            self.logger.experiment.add_figure("val_first_batch", figure, self.current_epoch)  # type: ignore[attr-defined]
+
     def on_validation_epoch_end(self) -> None:
         """Log confusion matrix and PR curve."""
         if self.logger:
             confusion_matrix = self.val_confusion.compute().detach().cpu().numpy().astype(int)  # type: ignore[func-returns-value]
 
-            plt.figure(figsize=(20, 20))
+            plt.figure(figsize=(10, 10))
             figure = sn.heatmap(
                 pd.DataFrame(confusion_matrix, index=self.idx_to_label.values(), columns=self.idx_to_label.values()),
                 cmap="mako",
