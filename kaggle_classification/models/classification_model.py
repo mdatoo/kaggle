@@ -92,7 +92,7 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
                 probabilities = torch.softmax(outputs, 1)
                 _, predictions = torch.max(outputs, 1)
 
-                for idx in range(64):
+                for idx in range(min(64, len(images))):
                     ax = figure.add_subplot(8, 8, idx + 1)
                     ax.axis("off")
                     ax.imshow((np.transpose(images[idx].cpu(), (1, 2, 0)) * self.std + self.mean).int())  # type: ignore[attr-defined]
@@ -153,7 +153,7 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
             probabilities = torch.softmax(outputs, 1)
             _, predictions = torch.max(outputs, 1)
 
-            for idx in range(64):
+            for idx in range(min(64, len(images))):
                 ax = figure.add_subplot(8, 8, idx + 1)
                 ax.axis("off")
                 ax.imshow((np.transpose(images[idx].cpu(), (1, 2, 0)) * self.std + self.mean).int())  # type: ignore[attr-defined]

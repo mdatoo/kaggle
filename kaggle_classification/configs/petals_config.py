@@ -11,7 +11,11 @@ import albumentations as A
 import cv2
 import timm
 from albumentations.pytorch import ToTensorV2
-from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
+from lightning.pytorch.callbacks import (
+    BackboneFinetuning,
+    LearningRateMonitor,
+    ModelCheckpoint,
+)
 from torch import nn, optim
 
 from ..batch_augmentations import (
@@ -39,22 +43,27 @@ class PetalsConfig(ClassificationConfig[int]):
     epochs = 75
     precision = "bf16-mixed"
     gradient_max_magnitude = 0.5
-    train_batch_size = 256
+    train_batch_size = 64
     train_num_workers = 8
-    val_batch_size = 256
+    val_batch_size = 64
     val_num_workers = 8
-    model = timm.create_model("resnet50", pretrained=True, in_chans=3, num_classes=dataset.num_classes)
+    model = timm.create_model(
+        "vit_small_patch14_reg4_dinov2.lvd142m", pretrained=True, in_chans=3, num_classes=dataset.num_classes
+    )
     loss = nn.CrossEntropyLoss()
-    optimiser = optim.AdamW(model.parameters(), lr=0.0002, weight_decay=0.01)
+    optimiser = optim.AdamW(model.parameters(), lr=0.00001, weight_decay=0.01)
     optimiser_scheduler = optim.lr_scheduler.SequentialLR(
         optimiser,
         schedulers=[
-            optim.lr_scheduler.LinearLR(optimiser, 0.1, 1.0, 5),
+            optim.lr_scheduler.LambdaLR(optimiser, lambda epoch: 2 * (epoch + 1)),
+            optim.lr_scheduler.LambdaLR(optimiser, lambda _: 10.0),
+            optim.lr_scheduler.LambdaLR(optimiser, lambda _: 1.0),
             optim.lr_scheduler.ExponentialLR(optimiser, 0.95),
         ],
-        milestones=[5],
+        milestones=[5, 10, 15],
     )
     callbacks = [
+        BackboneFinetuning(unfreeze_backbone_at_epoch=10, backbone_initial_ratio_lr=1.0),
         LearningRateMonitor(logging_interval="epoch"),
         ModelCheckpoint(
             dirpath=path.join(work_dir, experiment_name, version),
@@ -71,8 +80,7 @@ class PetalsConfig(ClassificationConfig[int]):
                 A.OneOf([A.HorizontalFlip(p=0.5), A.VerticalFlip(p=0.5)], p=0.5),
                 A.Transpose(p=0.2),
                 A.Rotate(limit=180, border_mode=cv2.BORDER_REFLECT_101, p=0.2),
-                A.Resize(height=256, width=256),
-                A.RandomCrop(height=224, width=224),
+                A.RandomResizedCrop(height=518, width=518, scale=(0.8, 1.0), ratio=(1.0, 1.0)),
                 A.RandomBrightnessContrast(p=0.2),
                 A.Blur(p=0.2),
                 A.CoarseDropout(p=0.5),
@@ -93,7 +101,7 @@ class PetalsConfig(ClassificationConfig[int]):
         """Augmentations for val dataset."""
         return A.Compose(
             [
-                A.Resize(height=256, width=256),
+                A.Resize(height=518, width=518),
                 A.Normalize(mean=self.train_dataset.mean, std=self.train_dataset.std, max_pixel_value=1),
                 ToTensorV2(),
             ]
