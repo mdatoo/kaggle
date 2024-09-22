@@ -162,3 +162,10 @@ class ClassificationDataset(
     def num_classes(self) -> int:
         """Number of classes."""
         return len(set(self.labels))
+
+    @property
+    def class_counts(self) -> List[int]:
+        """Size of each class."""
+        return [
+            len([label for label in self.labels if self.label_to_idx[label] == idx]) for idx in range(self.num_classes)
+        ]

@@ -25,6 +25,7 @@ from ..batch_augmentations import (
     MixUpBatchAugmentation,
 )
 from ..datasets import PetalsDataset
+from ..losses import ClassBalancedFocalLoss
 from .classification_config import ClassificationConfig
 
 
@@ -50,7 +51,6 @@ class PetalsConfig(ClassificationConfig[int]):
     model = timm.create_model(
         "vit_small_patch14_reg4_dinov2.lvd142m", pretrained=True, in_chans=3, num_classes=dataset.num_classes
     )
-    loss = nn.CrossEntropyLoss()
     optimiser = optim.AdamW(model.parameters(), lr=0.00001, weight_decay=0.01)
     optimiser_scheduler = optim.lr_scheduler.SequentialLR(
         optimiser,
@@ -71,6 +71,11 @@ class PetalsConfig(ClassificationConfig[int]):
             monitor="val_loss",
         ),
     ]
+
+    @property
+    def loss(self) -> nn.Module:
+        """Loss function."""
+        return ClassBalancedFocalLoss(self.train_dataset.class_counts, 0.9999, 1.0)
 
     @property
     def train_augmentations(self) -> A.BaseCompose:
