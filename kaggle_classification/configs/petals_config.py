@@ -63,7 +63,7 @@ class PetalsConfig(ClassificationConfig[int]):
         milestones=[5, 10, 15],
     )
     callbacks = [
-        BackboneFinetuning(unfreeze_backbone_at_epoch=10, backbone_initial_ratio_lr=1.0),
+        BackboneFinetuning(unfreeze_backbone_at_epoch=10),
         LearningRateMonitor(logging_interval="epoch"),
         ModelCheckpoint(
             dirpath=path.join(work_dir, experiment_name, version),
