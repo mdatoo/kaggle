@@ -16,7 +16,12 @@ class FocalLoss(nn.Module):
         self.alpha = nn.Parameter(torch.Tensor(alpha)) if alpha else None
 
     def forward(self, output: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """Calculate focal loss."""
+        """Calculate focal loss.
+
+        Args:
+            output: Model logits
+            target: Associated labels
+        """
         logpt = F.log_softmax(output, dim=1)
         focal = (1 - logpt.exp() * target) ** self.gamma
         loss = -logpt * target * focal * self.alpha

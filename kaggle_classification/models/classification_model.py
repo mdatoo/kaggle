@@ -3,16 +3,14 @@
 from typing import Any, Dict, Generic, TypeVar
 
 import lightning.pytorch as pl
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-import pandas as pd
-import seaborn as sn
 import torch
 from torch import nn, optim
-from torchmetrics import Accuracy, CatMetric, ConfusionMatrix
+from torchmetrics import Accuracy
 
 from ..datasets import ClassificationDataset
+from ..metrics import ConfusionMatrix, Embeddings, IncorrectPredictionsGrid, PRCurve
 
 T = TypeVar("T")
 
@@ -53,9 +51,10 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
         self.optimiser_scheduler = optimiser_scheduler
 
         self.val_acc = Accuracy(task="multiclass", num_classes=len(self.idx_to_label))
-        self.val_confusion = ConfusionMatrix(task="multiclass", num_classes=len(self.idx_to_label))
-        self.val_outputs = CatMetric()
-        self.val_labels = CatMetric()
+        self.val_confusion = ConfusionMatrix(self.idx_to_label, "val")
+        self.val_incorrect_predictions = IncorrectPredictionsGrid(self.mean, self.std, self.idx_to_label, 8, 8, "val")
+        self.val_embeddings = Embeddings(self.mean, self.std, self.idx_to_label, 64, "val")
+        self.val_pr_curve = PRCurve(self.idx_to_label, "val")
 
     @property
     def idx_to_label(self) -> Dict[int, T]:
@@ -86,28 +85,12 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
         loss: torch.Tensor = self.criterion(outputs, targets)
         self.log("train_loss", loss, on_step=True, on_epoch=False)
 
-        if batch_idx == 0 and self.logger:
-            with torch.no_grad():
-                figure = plt.figure(figsize=(10, 10))
-                probabilities = torch.softmax(outputs, 1)
-                _, predictions = torch.max(outputs, 1)
-
-                for idx in range(min(64, len(images))):
-                    ax = figure.add_subplot(8, 8, idx + 1)
-                    ax.axis("off")
-                    ax.imshow((np.transpose(images[idx].cpu(), (1, 2, 0)) * self.std + self.mean).int())  # type: ignore[attr-defined]
-                    ax.set_title(
-                        f"Predicted: {self.idx_to_label[predictions[idx].item()]} ({probabilities[idx, predictions[idx]] * 100:.2f}%)",
-                        fontsize=6,
-                    )
-                plt.subplots_adjust(wspace=0, hspace=0)
-                plt.tight_layout()
-                plt.close(figure)
-                self.logger.experiment.add_figure("train_first_batch", figure, self.current_epoch)  # type: ignore[attr-defined]
+        if self.current_epoch == 0 and batch_idx == 0 and self.logger:
+            self.logger.experiment.add_graph(self.backbone, images[:1])  # type: ignore[attr-defined]
 
         return loss
 
-    def validation_step(self, batch: torch.Tensor, batch_idx: int) -> None:  # pylint: disable=arguments-differ
+    def validation_step(self, batch: torch.Tensor, _: int) -> None:  # pylint: disable=arguments-differ
         """Calculate and log metrics/loss to tensorboard.
 
         Args:
@@ -127,79 +110,22 @@ class ClassificationModel(pl.LightningModule, Generic[T]):  # pylint: disable=to
         self.log("val_accuracy", self.val_acc, on_step=False, on_epoch=True)
 
         self.val_confusion.update(outputs, labels)
-        self.val_outputs.update(outputs)
-        self.val_labels.update(labels)
-
-        if batch_idx == 0 and self.logger:
-            if self.current_epoch == 0:
-                self.logger.experiment.add_graph(self.backbone, images[:1])  # type: ignore[attr-defined]
-
-            self.logger.experiment.add_embedding(  # type: ignore[attr-defined]
-                torch.flatten(
-                    features[:64].cpu().float(),
-                    start_dim=1,
-                ),
-                [self.idx_to_label[label.item()] for label in labels[:64]],
-                (
-                    images[:64].cpu() * torch.unsqueeze(torch.unsqueeze(torch.tensor(self.std), -1), -1)
-                    + torch.unsqueeze(torch.unsqueeze(torch.tensor(self.mean), -1), -1)
-                )
-                / 255.0,
-                self.current_epoch,
-                "val_embedding",
-            )
-
-            figure = plt.figure(figsize=(10, 10))
-            probabilities = torch.softmax(outputs, 1)
-            _, predictions = torch.max(outputs, 1)
-
-            for idx in range(min(64, len(images))):
-                ax = figure.add_subplot(8, 8, idx + 1)
-                ax.axis("off")
-                ax.imshow((np.transpose(images[idx].cpu(), (1, 2, 0)) * self.std + self.mean).int())  # type: ignore[attr-defined]
-                ax.set_title(
-                    f"Predicted: {self.idx_to_label[predictions[idx].item()]} ({probabilities[idx, predictions[idx]] * 100:.2f}%)\nActual: {self.idx_to_label[labels[idx].item()]}",
-                    fontsize=6,
-                )
-            plt.subplots_adjust(wspace=0, hspace=0)
-            plt.tight_layout()
-            plt.close(figure)
-            self.logger.experiment.add_figure("val_first_batch", figure, self.current_epoch)  # type: ignore[attr-defined]
+        self.val_incorrect_predictions.update(outputs, labels, images)
+        self.val_embeddings.update(features, labels, images)
+        self.val_pr_curve.update(outputs, labels)
 
     def on_validation_epoch_end(self) -> None:
         """Log confusion matrix and PR curve."""
         if self.logger:
-            confusion_matrix = self.val_confusion.compute().detach().cpu().numpy().astype(int)  # type: ignore[func-returns-value]
-
-            plt.figure(figsize=(10, 10))
-            figure = sn.heatmap(
-                pd.DataFrame(confusion_matrix, index=self.idx_to_label.values(), columns=self.idx_to_label.values()),
-                cmap="mako",
-            ).get_figure()
-            plt.close(figure)
-            self.logger.experiment.add_figure("val_confusion", figure, self.current_epoch)  # type: ignore[attr-defined]
-
-            val_probs = torch.softmax(self.val_outputs.compute(), 1)
-            val_labels = self.val_labels.compute()
-
-            for class_idx, class_name in self.idx_to_label.items():
-                self.logger.experiment.add_pr_curve(  # type: ignore[attr-defined]
-                    f"val_{class_name}",
-                    val_labels == class_idx,
-                    val_probs[:, class_idx],
-                    self.current_epoch,
-                )
-
-            self.logger.experiment.add_pr_curve(  # type: ignore[attr-defined]
-                "val_micro",
-                torch.concat([val_labels == class_idx for class_idx in self.idx_to_label.keys()]),  # type: ignore[misc]
-                val_probs.transpose(0, 1).flatten(),
-                self.current_epoch,
-            )
+            self.val_confusion.plot(self.logger, self.current_epoch)  # type: ignore[arg-type]
+            self.val_incorrect_predictions.plot(self.logger, self.current_epoch)  # type: ignore[arg-type]
+            self.val_embeddings.plot(self.logger, self.current_epoch)  # type: ignore[arg-type]
+            self.val_pr_curve.plot(self.logger, self.current_epoch)  # type: ignore[arg-type]
 
         self.val_confusion.reset()
-        self.val_outputs.reset()
-        self.val_labels.reset()
+        self.val_incorrect_predictions.reset()
+        self.val_embeddings.reset()
+        self.val_pr_curve.reset()
 
     def configure_optimizers(  # type: ignore[override]
         self,
